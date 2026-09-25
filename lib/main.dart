@@ -1,9 +1,12 @@
-
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:moveup/firebase_options.dart';
+import 'package:moveup/screens/auth_gate.dart';
 import 'package:moveup/theme.dart';
-import 'package:moveup/screens/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MoveUpApp());
 }
 
@@ -17,7 +20,7 @@ class MoveUpApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      home: const SplashScreen(),
+      home: const AuthGate(),
     );
   }
 }

@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:moveup/theme.dart';
 import 'package:moveup/widgets.dart';
 
 class ReminderScreen extends StatelessWidget {
@@ -48,7 +49,7 @@ class ReminderScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Tambah Reminder", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text("Tambah Reminder", style: AppTheme.display(24)),
               const SizedBox(height: 24),
               const TextField(decoration: InputDecoration(hintText: "Nama Aktivitas (misal: Lari)")),
               const SizedBox(height: 16),

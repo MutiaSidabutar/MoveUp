@@ -1,0 +1,74 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:moveup/models/user_profile.dart';
+import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/utils/validators.dart';
+import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/profile_form.dart';
+
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key, required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final _draft = ProfileDraft.from(widget.profile);
+  bool _saving = false;
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final updated = _draft.toProfile(uid: widget.profile.uid, email: widget.profile.email);
+      await ProfileService.instance.save(updated);
+      await FirebaseAuth.instance.currentUser?.updateDisplayName(updated.name);
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text("Profil diperbarui")));
+      Navigator.pop(context);
+    } catch (e) {
+      messenger.showSnackBar(const SnackBar(content: Text("Gagal menyimpan profil. Periksa koneksi Anda.")));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("EDIT PROFIL")),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            TextFormField(
+              initialValue: _draft.name,
+              textCapitalization: TextCapitalization.words,
+              validator: Validators.name,
+              onChanged: (v) => _draft.name = v,
+              decoration: const InputDecoration(labelText: "Nama lengkap", prefixIcon: Icon(Icons.person_outline)),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              initialValue: widget.profile.email,
+              enabled: false,
+              decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.mail_outline)),
+            ),
+            const SizedBox(height: 24),
+            BodyInfoFields(draft: _draft, onChanged: () => setState(() {})),
+            const SizedBox(height: 28),
+            PreferenceFields(draft: _draft, onChanged: () => setState(() {})),
+            const SizedBox(height: 32),
+            PrimaryButton(text: _saving ? "Menyimpan…" : "Simpan Perubahan", onPressed: _saving ? () {} : _save),
+          ],
+        ),
+      ),
+    );
+  }
+}

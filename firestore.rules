@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Setiap pengguna hanya boleh membaca dan menulis dokumen profilnya sendiri
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validProfile(data) {
+      return data.keys().hasOnly(['name', 'email', 'gender', 'birthDate', 'weightKg', 'heightCm',
+                                  'level', 'favoriteSports', 'createdAt', 'updatedAt'])
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 50
+        && data.email == request.auth.token.email
+        && data.gender in ['male', 'female']
+        && data.birthDate is timestamp
+        && data.weightKg is number && data.weightKg >= 20 && data.weightKg <= 300
+        && data.heightCm is number && data.heightCm >= 100 && data.heightCm <= 250
+        && data.level in ['beginner', 'intermediate', 'advanced']
+        && data.favoriteSports is list && data.favoriteSports.size() >= 1;
+    }
+  }
+}

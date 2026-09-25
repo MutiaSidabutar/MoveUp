@@ -1,4 +1,6 @@
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 // Button Components
@@ -86,18 +88,18 @@ class StatCard extends StatelessWidget {
 
 class ActivityCard extends StatelessWidget {
   final String title;
-  final String date;
-  final String duration;
-  final String calories;
+  final String subtitle;
+  final String primaryValue;
+  final String secondaryValue;
   final IconData icon;
   final VoidCallback? onTap;
 
   const ActivityCard({
     super.key,
     required this.title,
-    required this.date,
-    required this.duration,
-    required this.calories,
+    required this.subtitle,
+    required this.primaryValue,
+    required this.secondaryValue,
     required this.icon,
     this.onTap,
   });
@@ -112,58 +114,22 @@ class ActivityCard extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: Theme.of(context).primaryColor),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(date, style: const TextStyle(fontSize: 12)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(duration, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(calories, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(primaryValue, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(secondaryValue, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
       ),
-    );
-  }
-}
-
-// Progress Ring
-class CircularProgressCard extends StatelessWidget {
-  final double progress;
-  final String title;
-  final String subtitle;
-
-  const CircularProgressCard({super.key, required this.progress, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          height: 120,
-          width: 120,
-          child: CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 10,
-            backgroundColor: Theme.of(context).dividerColor.withOpacity(0.1),
-            color: Theme.of(context).primaryColor,
-            strokeCap: StrokeCap.round,
-          ),
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        )
-      ],
     );
   }
 }
@@ -181,39 +147,106 @@ class EmptyStateWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.grey.withOpacity(0.5)),
+          Icon(icon, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          Text(message, style: const TextStyle(color: Colors.grey, fontSize: 16)),
+          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16)),
         ],
       ),
     );
   }
 }
 
-// Chart Placeholder
-class ChartPlaceholder extends StatelessWidget {
-  const ChartPlaceholder({super.key});
+// Bar Chart
+class SimpleBarChart extends StatelessWidget {
+  final List<double> values;
+  final List<String> labels;
+  final int? highlightIndex;
+  final double height;
+
+  const SimpleBarChart({
+    super.key,
+    required this.values,
+    required this.labels,
+    this.highlightIndex,
+    this.height = 120,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 200,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart, size: 48, color: Theme.of(context).primaryColor.withOpacity(0.5)),
-            const SizedBox(height: 8),
-            const Text("Grafik Statistik", style: TextStyle(color: Colors.grey)),
-          ],
-        ),
+    final primary = Theme.of(context).primaryColor;
+    final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
+
+    return SizedBox(
+      height: height + 20,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < values.length; i++)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: values.length > 10 ? 1 : 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      // Batang kosong tetap terlihat tipis supaya sumbu terbaca
+                      height: maxValue == 0 ? 3 : (values[i] / maxValue * height).clamp(3, height),
+                      decoration: BoxDecoration(
+                        color: values[i] == 0
+                            ? Theme.of(context).dividerColor.withValues(alpha: 0.2)
+                            : (highlightIndex == null || highlightIndex == i ? primary : primary.withValues(alpha: 0.5)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 16,
+                      child: Text(labels[i], style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+// Efek butiran film seperti foto hitam-putih; ditaruh di atas latar dengan Stack
+class FilmGrain extends StatelessWidget {
+  final double opacity;
+
+  const FilmGrain({super.key, this.opacity = 0.06});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: CustomPaint(size: Size.infinite, painter: _GrainPainter(opacity)),
+      ),
+    );
+  }
+}
+
+class _GrainPainter extends CustomPainter {
+  _GrainPainter(this.opacity);
+
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Seed tetap supaya pola butiran tidak berkedip setiap kali digambar ulang
+    final random = math.Random(7);
+    final light = Paint()..color = Colors.white.withValues(alpha: opacity);
+    final dark = Paint()..color = Colors.black.withValues(alpha: opacity);
+    final count = (size.width * size.height / 30).round();
+    for (var i = 0; i < count; i++) {
+      final rect = Rect.fromLTWH(random.nextDouble() * size.width, random.nextDouble() * size.height, 1.2, 1.2);
+      canvas.drawRect(rect, i.isEven ? light : dark);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GrainPainter old) => old.opacity != opacity;
 }

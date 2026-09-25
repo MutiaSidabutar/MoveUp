@@ -10,8 +10,6 @@ class GoalsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text("Target Saya"), backgroundColor: Colors.transparent, elevation: 0),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
       body: ListView(
