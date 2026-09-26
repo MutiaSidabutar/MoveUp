@@ -3,10 +3,16 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
+import 'package:moveup/screens/goal_detail_screen.dart';
+import 'package:moveup/screens/goals_screen.dart';
+import 'package:moveup/screens/reminder_screen.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/goal_store.dart';
+import 'package:moveup/services/reminder_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
 import 'package:moveup/widgets/activity_feed_card.dart';
+import 'package:moveup/widgets/goal_progress_card.dart';
 
 // Beranda: ringkasan minggu ini dan feed aktivitas
 class DashboardScreen extends StatelessWidget {
@@ -18,7 +24,7 @@ class DashboardScreen extends StatelessWidget {
 
     return SafeArea(
       child: ListenableBuilder(
-        listenable: store,
+        listenable: Listenable.merge([store, GoalStore.instance, ReminderStore.instance]),
         builder: (context, _) {
           final activities = store.activities;
           final now = DateTime.now();
@@ -42,6 +48,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _WeekSummaryCard(week: week, todayIndex: now.weekday - 1),
               const SizedBox(height: 16),
+              _PlanSection(now: now),
               if (activities.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 48),
@@ -50,7 +57,9 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.directions_run,
                   ),
                 )
-              else
+              else ...[
+                Text("Aktivitas Terbaru", style: AppTheme.display(22)),
+                const SizedBox(height: 8),
                 for (final activity in activities)
                   ActivityFeedCard(
                     activity: activity,
@@ -59,6 +68,7 @@ class DashboardScreen extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => ActivityDetailScreen(activity: activity)),
                     ),
                   ),
+              ],
             ],
           );
         },
@@ -117,6 +127,68 @@ class _WeekSummaryCard extends StatelessWidget {
           Text(value, style: AppTheme.display(22)),
         ],
       ),
+    );
+  }
+}
+
+// Target yang belum tercapai dan jadwal latihan berikutnya
+class _PlanSection extends StatelessWidget {
+  const _PlanSection({required this.now});
+
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final activities = ActivityStore.instance.activities;
+    final progress = [for (final g in GoalStore.instance.goals) g.progress(activities, now: now)]
+      ..sort((a, b) => b.fraction.compareTo(a.fraction));
+    final ongoing = progress.where((p) => !p.completed).take(2).toList();
+    final next = [
+      for (final r in ReminderStore.instance.reminders)
+        if (r.nextAfter(now) case final at?) (r, at),
+    ]..sort((a, b) => a.$2.compareTo(b.$2));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (next.isNotEmpty)
+          Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ListTile(
+              leading: Icon(next.first.$1.sportType.icon),
+              title: Text("Jadwal berikutnya: ${next.first.$1.title}"),
+              subtitle: Text(formatRelativeDateTime(next.first.$2)),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen())),
+            ),
+          ),
+        if (progress.isNotEmpty) ...[
+          Row(
+            children: [
+              Expanded(child: Text("Target", style: AppTheme.display(22))),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalsScreen())),
+                child: Text("Lihat semua (${progress.length})"),
+              ),
+            ],
+          ),
+          if (ongoing.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: Text("Semua target periode ini sudah tercapai. Mantap!", style: TextStyle(color: Colors.grey)),
+            )
+          else
+            for (final p in ongoing)
+              GoalProgressCard(
+                progress: p,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: p.goal.id)),
+                ),
+              ),
+          const SizedBox(height: 8),
+        ],
+      ],
     );
   }
 }

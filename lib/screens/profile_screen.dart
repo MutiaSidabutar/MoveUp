@@ -4,6 +4,7 @@ import 'package:moveup/screens/change_password_screen.dart';
 import 'package:moveup/screens/edit_profile_screen.dart';
 import 'package:moveup/screens/goals_screen.dart';
 import 'package:moveup/screens/reminder_screen.dart';
+import 'package:moveup/screens/settings_screen.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/profile_service.dart';
@@ -119,6 +120,9 @@ class ProfileScreen extends StatelessWidget {
           }),
           _buildMenuItem(context, Icons.security, "Keamanan Akun", onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+          }),
+          _buildMenuItem(context, Icons.settings_outlined, "Pengaturan", onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
           }),
           const SizedBox(height: 20),
           _buildMenuItem(context, Icons.logout, "Logout", color: Colors.red, onTap: () => _confirmLogout(context)),

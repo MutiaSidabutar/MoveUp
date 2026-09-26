@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/services/reminder_store.dart';
 
 // Pesan error yang ramah pengguna untuk dilempar ke UI
 class AuthFailure implements Exception {
@@ -104,6 +106,8 @@ class AuthService {
     await _auth.signOut();
     ProfileService.instance.clear();
     ActivityStore.instance.clear();
+    GoalStore.instance.clear();
+    ReminderStore.instance.clear();
   }
 
   static Future<T> _guard<T>(Future<T> Function() action) async {

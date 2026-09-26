@@ -1,69 +1,95 @@
-
 import 'package:flutter/material.dart';
+import 'package:moveup/models/goal.dart';
+import 'package:moveup/screens/goal_detail_screen.dart';
+import 'package:moveup/screens/goal_form_screen.dart';
+import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/goal_store.dart';
+import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/goal_progress_card.dart';
 
-class GoalsScreen extends StatelessWidget {
+enum _GoalFilter {
+  all('Semua'),
+  ongoing('Berjalan'),
+  done('Tercapai');
+
+  const _GoalFilter(this.label);
+
+  final String label;
+}
+
+class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
+
+  @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  _GoalFilter _filter = _GoalFilter.all;
+
+  bool _matches(GoalProgress p) => switch (_filter) {
+        _GoalFilter.all => true,
+        _GoalFilter.ongoing => !p.completed,
+        _GoalFilter.done => p.completed,
+      };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Target Saya"), backgroundColor: Colors.transparent, elevation: 0),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen())),
+        icon: const Icon(Icons.add),
+        label: const Text("Target Baru"),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _buildGoalCard(context, "Jalan Kaki Harian", "10,000 Langkah", 0.7, true),
-          _buildGoalCard(context, "Bakar Kalori", "2,000 Kcal / Minggu", 1.0, false), // Completed
-          _buildGoalCard(context, "Olahraga 3x Seminggu", "2/3 Sesi", 0.66, true),
-        ],
-      ),
-    );
-  }
+      body: ListenableBuilder(
+        listenable: Listenable.merge([GoalStore.instance, ActivityStore.instance]),
+        builder: (context, _) {
+          final activities = ActivityStore.instance.activities;
+          final all = [for (final g in GoalStore.instance.goals) g.progress(activities)];
+          final shown = all.where(_matches).toList();
+          final doneCount = all.where((p) => p.completed).length;
 
-  Widget _buildGoalCard(BuildContext context, String title, String subtitle, double progress, bool isActive) {
-    bool isCompleted = progress >= 1.0;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: const TextStyle(color: Colors.grey)),
-                  ],
-                ),
-                if (isCompleted)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+            children: [
+              Text(
+                all.isEmpty ? "Belum ada target" : "$doneCount dari ${all.length} target tercapai pada periode ini",
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final f in _GoalFilter.values)
+                    ChoiceChip(
+                      label: Text(f.label),
+                      selected: f == _filter,
+                      onSelected: (_) => setState(() => _filter = f),
                     ),
-                    child: const Text("Tercapai 🎉", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
-                  )
-              ],
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Theme.of(context).dividerColor.withOpacity(0.1),
-              color: isCompleted ? Colors.orange : Theme.of(context).primaryColor,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
-            )
-          ],
-        ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (shown.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 48),
+                  child: EmptyStateWidget(
+                    message: all.isEmpty ? "Buat target pertamamu\ndengan tombol Target Baru" : "Tidak ada target di filter ini",
+                    icon: Icons.track_changes,
+                  ),
+                )
+              else
+                for (final p in shown)
+                  GoalProgressCard(
+                    progress: p,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: p.goal.id)),
+                    ),
+                  ),
+            ],
+          );
+        },
       ),
     );
   }

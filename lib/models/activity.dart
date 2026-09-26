@@ -18,7 +18,9 @@ enum SportType {
     (12.0, 4.0), (17.5, 6.8), (20.9, 8.0), (24.0, 10.0), (28.0, 12.0), (32.0, 15.8),
   ]),
   // Hiking lebih ditentukan tanjakan daripada kecepatan, jadi memakai satu nilai tetap
-  hike('Hiking', Icons.hiking, 6.0, []);
+  hike('Hiking', Icons.hiking, 6.0, []),
+  // Renang gaya bebas intensitas sedang; kecepatan GPS di air tidak cukup akurat untuk tabel
+  swim('Renang', Icons.pool, 5.8, []);
 
   const SportType(this.label, this.icon, this.defaultMet, this._metBySpeed);
 
@@ -52,6 +54,9 @@ enum SportType {
     final hours = seconds / 3600;
     return (metAt(meters / 1000 / hours) * weightKg * hours).round();
   }
+
+  // Kategori olahraga adalah data referensi; name dipakai sebagai ID relasi di target dan pengingat
+  String get id => name;
 
   static SportType fromName(String name) =>
       SportType.values.firstWhere((t) => t.name == name, orElse: () => SportType.run);

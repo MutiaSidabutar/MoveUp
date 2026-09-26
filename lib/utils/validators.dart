@@ -65,6 +65,41 @@ class Validators {
 
   static double? parseNumber(String? v) => double.tryParse((v ?? '').trim().replaceAll(',', '.'));
 
+  // Judul aktivitas, target, dan pengingat
+  static String? Function(String?) title({required String label, int min = 3, int max = 50, bool required = true}) =>
+      (v) {
+        final value = v?.trim() ?? '';
+        if (value.isEmpty) return required ? '$label wajib diisi' : null;
+        if (value.length < min) return '$label minimal $min karakter';
+        if (value.length > max) return '$label maksimal $max karakter';
+        return null;
+      };
+
+  // Angka lebih dari 0 sampai [max]; kosong dianggap valid kalau tidak wajib
+  static String? Function(String?) positiveNumber({
+    required String label,
+    required double max,
+    String unit = '',
+    bool required = true,
+  }) =>
+      (v) {
+        if (v == null || v.trim().isEmpty) return required ? '$label wajib diisi' : null;
+        final n = parseNumber(v);
+        if (n == null) return '$label harus berupa angka';
+        if (n <= 0) return '$label harus lebih dari 0';
+        if (n > max) return '$label maksimal ${max.round()}${unit.isEmpty ? '' : ' $unit'}';
+        return null;
+      };
+
+  // Bilangan bulat 0 sampai [max]; kosong dianggap 0
+  static String? Function(String?) wholeNumber({required String label, required int max}) => (v) {
+        if (v == null || v.trim().isEmpty) return null;
+        final n = int.tryParse(v.trim());
+        if (n == null || n < 0) return '$label harus bilangan bulat';
+        if (n > max) return '$label maksimal $max';
+        return null;
+      };
+
   static String? _range(String? v, String label, double min, double max, String unit) {
     if (v == null || v.trim().isEmpty) return '$label wajib diisi';
     final n = parseNumber(v);

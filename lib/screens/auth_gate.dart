@@ -7,7 +7,9 @@ import 'package:moveup/screens/splash_screen.dart';
 import 'package:moveup/screens/verify_email_screen.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/services/auth_service.dart';
+import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/services/reminder_store.dart';
 
 // Halaman dasar aplikasi: memilih layar sesuai status login
 // belum masuk → Splash, belum verifikasi → Verifikasi Email, belum ada profil → Lengkapi Profil, selain itu → Beranda
@@ -26,9 +28,13 @@ class _AuthGateState extends State<AuthGate> {
     if (_loadedUid != user.uid || _profileFuture == null) {
       _loadedUid = user.uid;
       _profileFuture = ProfileService.instance.load(user.uid);
-      // Ditunda ke microtask karena memuat aktivitas memberi notifikasi ke listener, tidak boleh saat build
+      // Ditunda ke microtask karena memuat data memberi notifikasi ke listener, tidak boleh saat build
       final uid = user.uid;
-      Future.microtask(() => ActivityStore.instance.loadFor(uid));
+      Future.microtask(() {
+        ActivityStore.instance.loadFor(uid);
+        GoalStore.instance.loadFor(uid);
+        ReminderStore.instance.loadFor(uid);
+      });
     }
     return _profileFuture!;
   }

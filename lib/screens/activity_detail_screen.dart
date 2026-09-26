@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
+import 'package:moveup/screens/add_activity_screen.dart';
+import 'package:moveup/screens/goal_detail_screen.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
@@ -11,7 +14,7 @@ class ActivityDetailScreen extends StatelessWidget {
 
   final Activity activity;
 
-  Future<void> _confirmDelete(BuildContext context) async {
+  Future<void> _confirmDelete(BuildContext context, Activity activity) async {
     final delete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -28,14 +31,30 @@ class ActivityDetailScreen extends StatelessWidget {
     );
     if (delete != true) return;
     await ActivityStore.instance.remove(activity.id);
-    if (context.mounted) Navigator.pop(context);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Aktivitas dihapus")));
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Dibaca ulang dari store supaya hasil edit langsung tampil
+    return ListenableBuilder(
+      listenable: Listenable.merge([ActivityStore.instance, GoalStore.instance]),
+      builder: (context, _) => _build(context, ActivityStore.instance.byId(activity.id) ?? activity),
+    );
+  }
+
+  Widget _build(BuildContext context, Activity activity) {
     final primary = Theme.of(context).primaryColor;
     final (paceLabel, paceValue) = paceOrSpeed(activity);
     final splits = activity.splits;
+    final all = ActivityStore.instance.activities;
+    // Target yang periode berjalannya ikut dihitung dari aktivitas ini
+    final goals = [
+      for (final g in GoalStore.instance.goals)
+        if (g.progress(all).activities.any((a) => a.id == activity.id)) g,
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -44,9 +63,17 @@ class ActivityDetailScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: "Edit",
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AddActivityScreen(activity: activity)),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: "Hapus",
-            onPressed: () => _confirmDelete(context),
+            onPressed: () => _confirmDelete(context, activity),
           ),
         ],
       ),
@@ -103,6 +130,23 @@ class ActivityDetailScreen extends StatelessWidget {
                   Text("Split", style: AppTheme.display(22)),
                   const SizedBox(height: 12),
                   _SplitsTable(splits: splits, showsSpeed: activity.type.showsSpeed),
+                ],
+                if (goals.isNotEmpty) ...[
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider()),
+                  Text("Target Terkait", style: AppTheme.display(22)),
+                  const SizedBox(height: 8),
+                  for (final goal in goals)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(goal.icon),
+                      title: Text(goal.title),
+                      subtitle: Text("${goal.period.label} · ${goal.targetLabel}"),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: goal.id)),
+                      ),
+                    ),
                 ],
               ],
             ),
