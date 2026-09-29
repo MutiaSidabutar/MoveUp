@@ -4,6 +4,7 @@ import 'package:moveup/models/goal.dart';
 import 'package:moveup/models/reminder.dart';
 import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/reminder_store.dart';
+import 'package:moveup/theme.dart';
 import 'package:moveup/utils/validators.dart';
 import 'package:moveup/widgets.dart';
 
@@ -38,12 +39,8 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
-    if (picked != null) setState(() => _time = picked);
-  }
-
   Future<void> _save() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final reminder = Reminder(
@@ -56,34 +53,32 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
       enabled: _enabled,
       goalId: _goalId,
     );
-    final store = ReminderStore.instance;
-    await (_editing ? store.update(reminder) : store.add(reminder));
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final store = ReminderStore.instance;
+      await (_editing ? store.update(reminder) : store.add(reminder));
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      messenger.error("Reminder gagal disimpan. Coba lagi.");
+      return;
+    }
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(_editing ? "Reminder diperbarui" : "Reminder ditambahkan")));
+    messenger.success(_editing ? "Reminder diperbarui" : "Reminder ${reminder.timeLabel} ditambahkan");
     Navigator.pop(context);
   }
 
   Future<void> _delete() async {
-    final delete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hapus reminder?"),
-        content: Text("\"${_initial!.title}\" akan dihapus."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final delete = await showConfirmDialog(
+      context,
+      title: "Hapus reminder?",
+      message: "\"${_initial!.title}\" akan dihapus dan tidak lagi mengingatkan Anda.",
+      confirmLabel: "Hapus",
     );
-    if (delete != true) return;
-    await ReminderStore.instance.remove(_initial!.id);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reminder dihapus")));
-    Navigator.pop(context);
+    if (!delete || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    await ReminderStore.instance.remove(_initial.id);
+    messenger.success("Reminder dihapus");
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -101,21 +96,28 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+        child: FormLayout(
+          action: PrimaryButton(
+            text: _editing ? "Simpan Perubahan" : "Simpan Reminder",
+            icon: Icons.check,
+            loading: _saving,
+            onPressed: _save,
+          ),
           children: [
-            TextFormField(
+            AppTextField(
               controller: _titleCtrl,
+              label: "Nama aktivitas",
+              hint: "Misal: Lari Pagi",
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: "Nama Aktivitas", hintText: "Misal: Lari Pagi"),
+              maxLength: 30,
+              textInputAction: TextInputAction.done,
               validator: Validators.title(label: "Nama aktivitas", max: 30),
             ),
-            const SizedBox(height: 20),
-            const Text("Jenis Olahraga", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
+            const SectionLabel("Jenis olahraga"),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 for (final type in SportType.values)
                   ChoiceChip(
@@ -134,7 +136,7 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: Text("Hari", style: TextStyle(fontWeight: FontWeight.bold))),
+                      const Expanded(child: SectionLabel("Hari")),
                       TextButton(
                         onPressed: () {
                           setState(() => _days.length == 7 ? _days.clear() : _days.addAll([1, 2, 3, 4, 5, 6, 7]));
@@ -160,26 +162,20 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
                         ),
                     ],
                   ),
-                  if (field.hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        field.errorText!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
-                      ),
-                    ),
+                  FieldError(field.errorText),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.schedule),
-              title: const Text("Waktu"),
-              trailing: Text(_time.format(context), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              onTap: _pickTime,
+            const SizedBox(height: AppSpacing.xl),
+            PickerField<TimeOfDay>(
+              label: "Jam pengingat",
+              icon: Icons.schedule,
+              initialValue: _time,
+              display: (v) => v == null ? "Pilih jam" : v.format(context),
+              pick: (current) => showTimePicker(context: context, initialTime: current ?? _time),
+              onChanged: (v) => setState(() => _time = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String?>(
               initialValue: _goalId,
               isExpanded: true,
@@ -191,7 +187,7 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
               ],
               onChanged: (v) => setState(() => _goalId = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text("Aktif"),
@@ -199,14 +195,6 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
               value: _enabled,
               onChanged: (v) => setState(() => _enabled = v),
             ),
-            const SizedBox(height: 24),
-            _saving
-                ? const Center(child: CircularProgressIndicator())
-                : PrimaryButton(
-                    text: _editing ? "Simpan Perubahan" : "Simpan Reminder",
-                    icon: Icons.check,
-                    onPressed: _save,
-                  ),
           ],
         ),
       ),

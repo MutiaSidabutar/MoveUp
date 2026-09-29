@@ -36,7 +36,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Target Saya"), backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(title: const Text("Target Saya")),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen())),
         icon: const Icon(Icons.add),
@@ -55,7 +55,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             children: [
               Text(
                 all.isEmpty ? "Belum ada target" : "$doneCount dari ${all.length} target tercapai pada periode ini",
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -73,10 +73,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
               if (shown.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 48),
-                  child: EmptyStateWidget(
-                    message: all.isEmpty ? "Buat target pertamamu\ndengan tombol Target Baru" : "Tidak ada target di filter ini",
-                    icon: Icons.track_changes,
-                  ),
+                  child: all.isEmpty
+                      ? EmptyStateWidget(
+                          title: "Belum ada target",
+                          message: "Tentukan jarak, durasi, atau jumlah latihan yang ingin dicapai.",
+                          icon: Icons.track_changes,
+                          actionLabel: "Buat Target",
+                          onAction: () =>
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen())),
+                        )
+                      : const EmptyStateWidget(
+                          message: "Tidak ada target di filter ini",
+                          icon: Icons.filter_alt_off_outlined,
+                        ),
                 )
               else
                 for (final p in shown)

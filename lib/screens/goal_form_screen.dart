@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/models/goal.dart';
 import 'package:moveup/services/goal_store.dart';
+import 'package:moveup/theme.dart';
 import 'package:moveup/utils/validators.dart';
 import 'package:moveup/widgets.dart';
 
@@ -23,6 +24,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
   late final _targetCtrl = TextEditingController(text: widget.goal == null ? '' : widget.goal!.metric.format(widget.goal!.target));
   late String _lastSuggestion = _suggestedTitle();
   late final _titleCtrl = TextEditingController(text: widget.goal?.title ?? _lastSuggestion);
+  final _titleFocus = FocusNode();
   bool _saving = false;
 
   bool get _editing => widget.goal != null;
@@ -31,6 +33,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _targetCtrl.dispose();
+    _titleFocus.dispose();
     super.dispose();
   }
 
@@ -51,6 +54,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
   }
 
   Future<void> _save() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final goal = Goal(
@@ -62,11 +66,17 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
       target: Validators.parseNumber(_targetCtrl.text)!,
       createdAt: widget.goal?.createdAt ?? DateTime.now(),
     );
-    final store = GoalStore.instance;
-    await (_editing ? store.update(goal) : store.add(goal));
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final store = GoalStore.instance;
+      await (_editing ? store.update(goal) : store.add(goal));
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      messenger.error("Target gagal disimpan. Coba lagi.");
+      return;
+    }
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(_editing ? "Target diperbarui" : "Target ditambahkan")));
+    messenger.success(_editing ? "Target diperbarui" : "Target \"${goal.title}\" ditambahkan");
     Navigator.pop(context);
   }
 
@@ -76,14 +86,18 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
       appBar: AppBar(title: Text(_editing ? "Edit Target" : "Target Baru")),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
+        child: FormLayout(
+          action: PrimaryButton(
+            text: _editing ? "Simpan Perubahan" : "Simpan Target",
+            icon: Icons.check,
+            loading: _saving,
+            onPressed: _save,
+          ),
           children: [
-            const Text("Kategori Olahraga", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SectionLabel("Kategori olahraga"),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 ChoiceChip(
                   label: const Text("Semua"),
@@ -99,12 +113,11 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
-            const Text("Ukuran Target", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xl),
+            const SectionLabel("Ukuran target"),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 for (final m in GoalMetric.values)
                   ChoiceChip(
@@ -115,9 +128,8 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
-            const Text("Periode", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xl),
+            const SectionLabel("Periode"),
             SegmentedButton<GoalPeriod>(
               segments: [
                 for (final p in GoalPeriod.values) ButtonSegment(value: p, label: Text(p.label)),
@@ -125,11 +137,13 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
               selected: {_period},
               onSelectionChanged: (s) => _update(() => _period = s.first),
             ),
-            const SizedBox(height: 20),
-            TextFormField(
+            const SizedBox(height: AppSpacing.xl),
+            AppTextField(
               controller: _targetCtrl,
+              nextFocus: _titleFocus,
+              label: "Jumlah target",
+              suffixText: _metric.unit,
               keyboardType: TextInputType.numberWithOptions(decimal: _metric == GoalMetric.distance),
-              decoration: InputDecoration(labelText: "Target", suffixText: _metric.unit),
               // Judul saran ikut diperbarui saat angka target diketik
               onChanged: (_) => _update(() {}),
               validator: (v) {
@@ -140,21 +154,18 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
               controller: _titleCtrl,
+              focusNode: _titleFocus,
+              label: "Nama target",
+              helper: "Terisi otomatis dari pilihan di atas; boleh diganti",
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: "Nama Target"),
+              maxLength: 40,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _save(),
               validator: Validators.title(label: "Nama target", max: 40),
             ),
-            const SizedBox(height: 32),
-            _saving
-                ? const Center(child: CircularProgressIndicator())
-                : PrimaryButton(
-                    text: _editing ? "Simpan Perubahan" : "Simpan Target",
-                    icon: Icons.check,
-                    onPressed: _save,
-                  ),
           ],
         ),
       ),

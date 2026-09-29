@@ -20,7 +20,32 @@ class _Palette {
   final Color input;
 }
 
+// Skala jarak dipakai di semua layar supaya ritme tata letak seragam
+class AppSpacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 20.0;
+  static const xxl = 32.0;
+
+  // Padding tepi layar
+  static const page = EdgeInsets.all(xl);
+}
+
+// Satu bentuk sudut untuk tombol, field, dan kartu
+class AppRadius {
+  static const control = 10.0;
+  static const card = 12.0;
+  static const sheet = 20.0;
+}
+
 class AppTheme {
+  // Warna status; sengaja sedikit redup agar tetap serasi dengan tema monokrom
+  static const danger = Color(0xFFD64545);
+  static const success = Color(0xFF3F9A5C);
+  static const warning = Color(0xFFE09A2B);
+
   // Terang: kabut pagi
   static const _fog = _Palette(
     background: Color(0xFFE9E9E6),
@@ -71,7 +96,7 @@ class AppTheme {
       // Dipakai Material 3 untuk chip yang dipilih
       secondaryContainer: primary,
       onSecondaryContainer: onPrimary,
-      error: const Color(0xFFD64545),
+      error: danger,
       onError: Colors.white,
       surface: p.surface,
       onSurface: p.text,
@@ -106,7 +131,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 0,
           textStyle: const TextStyle(letterSpacing: 1),
@@ -116,7 +141,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
           side: BorderSide(color: primary, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
@@ -127,16 +152,26 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: BorderSide.none,
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          borderSide: const BorderSide(color: danger, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          borderSide: const BorderSide(color: danger, width: 1.5),
+        ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: BorderSide(color: primary, width: 1.5),
         ),
         filled: true,
         fillColor: p.input,
         labelStyle: TextStyle(color: p.muted),
+        floatingLabelStyle: TextStyle(color: p.text, fontWeight: FontWeight.w600),
+        errorMaxLines: 2,
         hintStyle: TextStyle(color: p.muted),
         prefixIconColor: p.muted,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -145,7 +180,7 @@ class AppTheme {
         color: p.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           side: BorderSide(color: p.border, width: 1),
         ),
       ),
@@ -155,8 +190,30 @@ class AppTheme {
         checkmarkColor: onPrimary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      dialogTheme: DialogThemeData(backgroundColor: p.surface),
-      bottomSheetTheme: BottomSheetThemeData(backgroundColor: p.surface),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+          side: BorderSide(color: p.border),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: p.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sheet)),
+        titleTextStyle: display(24, color: p.text),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: p.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: p.text,
+        contentTextStyle: TextStyle(color: p.surface),
+        actionTextColor: p.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+      ),
       popupMenuTheme: PopupMenuThemeData(color: p.surface),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: primary),
       switchTheme: SwitchThemeData(

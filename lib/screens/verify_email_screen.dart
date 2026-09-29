@@ -56,12 +56,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         _poll?.cancel();
         widget.onVerified();
       } else if (!silent && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email belum terverifikasi. Buka tautan di email Anda.")),
-        );
+        showErrorMessage(context, "Email belum terverifikasi. Buka tautan di email Anda.");
       }
     } on AuthFailure catch (e) {
-      if (!silent && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (!silent && mounted) showErrorMessage(context, e.message);
     } finally {
       _checking = false;
     }
@@ -72,9 +70,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       await AuthService.resendVerification();
       _startCooldown();
-      messenger.showSnackBar(const SnackBar(content: Text("Email verifikasi dikirim ulang.")));
+      messenger.success("Email verifikasi dikirim ulang.");
     } on AuthFailure catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.error(e.message);
     }
   }
 

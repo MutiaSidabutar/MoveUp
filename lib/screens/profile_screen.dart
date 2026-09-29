@@ -10,26 +10,20 @@ import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
+import 'package:moveup/widgets.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   Future<void> _confirmLogout(BuildContext context) async {
-    final logout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Keluar dari akun?"),
-        content: const Text("Aktivitas Anda tetap tersimpan di perangkat ini dan muncul lagi saat Anda masuk kembali."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Keluar", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final logout = await showConfirmDialog(
+      context,
+      title: "Keluar dari akun?",
+      message: "Aktivitas Anda tetap tersimpan di perangkat ini dan muncul lagi saat Anda masuk kembali.",
+      confirmLabel: "Keluar",
+      icon: Icons.logout,
     );
-    if (logout == true) await AuthService.signOut();
+    if (logout) await AuthService.signOut();
   }
 
   @override
@@ -125,7 +119,7 @@ class ProfileScreen extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
           }),
           const SizedBox(height: 20),
-          _buildMenuItem(context, Icons.logout, "Logout", color: Colors.red, onTap: () => _confirmLogout(context)),
+          _buildMenuItem(context, Icons.logout, "Logout", color: Theme.of(context).colorScheme.error, onTap: () => _confirmLogout(context)),
         ],
       ),
     );

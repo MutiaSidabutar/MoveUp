@@ -162,7 +162,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           _buildSportRecords(type, activities.where((a) => a.type == type).toList()),
     ];
     if (cards.isEmpty) {
-      return const [Text("Rekor muncul setelah Anda menyimpan aktivitas.", style: TextStyle(color: Colors.grey))];
+      return [Text("Rekor muncul setelah Anda menyimpan aktivitas.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))];
     }
     return cards;
   }
@@ -214,7 +214,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       children: [
         Text(val, style: AppTheme.display(30)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.grey)),
+        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }

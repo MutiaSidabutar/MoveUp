@@ -150,7 +150,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: PrimaryButton(
                   text: _loading ? "Membuat akun…" : (_step < 2 ? "Lanjut" : "Buat Akun"),
-                  onPressed: _loading ? () {} : _next,
+                  loading: _loading,
+                  onPressed: _next,
                 ),
               ),
             ],

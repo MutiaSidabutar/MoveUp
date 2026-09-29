@@ -18,28 +18,18 @@ class GoalDetailScreen extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context, Goal goal) async {
     final linked = ReminderStore.instance.forGoal(goal.id).length;
-    final delete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hapus target?"),
-        content: Text(
-          "\"${goal.title}\" akan dihapus permanen."
+    final delete = await showConfirmDialog(
+      context,
+      title: "Hapus target?",
+      message: "\"${goal.title}\" akan dihapus permanen."
           "${linked > 0 ? "\n\n$linked pengingat yang terhubung tetap disimpan tanpa target." : ""}",
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      confirmLabel: "Hapus",
     );
-    if (delete != true) return;
+    if (!delete || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     await GoalStore.instance.remove(goal.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Target dihapus")));
-    Navigator.pop(context);
+    messenger.success("Target dihapus");
+    if (context.mounted) Navigator.pop(context);
   }
 
   @override
@@ -137,10 +127,10 @@ class GoalDetailScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
-                _infoRow(Icons.category_outlined, "Kategori", goal.categoryLabel),
-                _infoRow(goal.metric.icon, "Ukuran", goal.metric.label),
-                _infoRow(Icons.flag_outlined, "Target", "${goal.targetLabel} per ${goal.period == GoalPeriod.weekly ? 'minggu' : 'bulan'}"),
-                _infoRow(Icons.calendar_today_outlined, "Dibuat", formatDate(goal.createdAt)),
+                _infoRow(context, Icons.category_outlined, "Kategori", goal.categoryLabel),
+                _infoRow(context, goal.metric.icon, "Ukuran", goal.metric.label),
+                _infoRow(context, Icons.flag_outlined, "Target", "${goal.targetLabel} per ${goal.period == GoalPeriod.weekly ? 'minggu' : 'bulan'}"),
+                _infoRow(context, Icons.calendar_today_outlined, "Dibuat", formatDate(goal.createdAt)),
               ],
             ),
           ),
@@ -159,7 +149,7 @@ class GoalDetailScreen extends StatelessWidget {
             ],
           ),
           if (reminders.isEmpty)
-            const Text("Belum ada pengingat untuk target ini.", style: TextStyle(color: Colors.grey))
+            Text("Belum ada pengingat untuk target ini.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           else
             for (final r in reminders)
               ListTile(
@@ -177,7 +167,7 @@ class GoalDetailScreen extends StatelessWidget {
           Text("Aktivitas ${goal.period.currentLabel} (${progress.activities.length})", style: AppTheme.display(22)),
           const SizedBox(height: 8),
           if (progress.activities.isEmpty)
-            const Text("Belum ada aktivitas yang dihitung pada periode ini.", style: TextStyle(color: Colors.grey))
+            Text("Belum ada aktivitas yang dihitung pada periode ini.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           else
             for (final a in progress.activities)
               ActivityCard(
@@ -196,11 +186,11 @@ class GoalDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
+  Widget _infoRow(BuildContext context, IconData icon, String label, String value) {
     return ListTile(
       dense: true,
       leading: Icon(icon, size: 20),
-      title: Text(label, style: const TextStyle(color: Colors.grey)),
+      title: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
   }

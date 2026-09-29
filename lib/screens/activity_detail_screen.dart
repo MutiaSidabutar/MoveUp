@@ -8,6 +8,7 @@ import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
+import 'package:moveup/widgets.dart';
 
 class ActivityDetailScreen extends StatelessWidget {
   const ActivityDetailScreen({super.key, required this.activity});
@@ -15,25 +16,17 @@ class ActivityDetailScreen extends StatelessWidget {
   final Activity activity;
 
   Future<void> _confirmDelete(BuildContext context, Activity activity) async {
-    final delete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hapus aktivitas?"),
-        content: Text("\"${activity.title}\" akan dihapus permanen."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final delete = await showConfirmDialog(
+      context,
+      title: "Hapus aktivitas?",
+      message: "\"${activity.title}\" beserta rutenya akan dihapus permanen dan tidak bisa dikembalikan.",
+      confirmLabel: "Hapus",
     );
-    if (delete != true) return;
+    if (!delete || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     await ActivityStore.instance.remove(activity.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Aktivitas dihapus")));
-    Navigator.pop(context);
+    messenger.success("Aktivitas dihapus");
+    if (context.mounted) Navigator.pop(context);
   }
 
   @override
@@ -99,7 +92,7 @@ class ActivityDetailScreen extends StatelessWidget {
                         Text(ProfileService.instance.profile?.name ?? 'Pengguna', style: const TextStyle(fontWeight: FontWeight.bold)),
                         Text(
                           "${formatDate(activity.startTime)} pukul ${formatTime(activity.startTime)}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -169,7 +162,7 @@ class _DetailStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 4),
           Text(value, style: AppTheme.display(28)),
         ],
@@ -189,13 +182,13 @@ class _SplitsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).primaryColor;
     final maxSpeed = splits.map((s) => s.speedKmh).reduce((a, b) => a > b ? a : b);
-    const headerStyle = TextStyle(color: Colors.grey, fontSize: 12);
+    final headerStyle = TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12);
 
     return Column(
       children: [
         Row(
           children: [
-            const SizedBox(width: 48, child: Text("Km", style: headerStyle)),
+            SizedBox(width: 48, child: Text("Km", style: headerStyle)),
             SizedBox(width: 64, child: Text(showsSpeed ? "km/j" : "Pace", style: headerStyle)),
           ],
         ),

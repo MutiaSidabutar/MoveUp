@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/utils/validators.dart';
 import 'package:moveup/widgets.dart';
@@ -27,9 +29,16 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   late final _distanceCtrl = TextEditingController(
     text: _initial == null || _initial.distanceMeters == 0 ? '' : formatKm(_initial.distanceMeters),
   );
+
+  // Urutan fokus saat menekan "berikutnya" di keyboard: jam → menit → jarak → catatan
+  final _hoursFocus = FocusNode();
+  final _minutesFocus = FocusNode();
+  final _distanceFocus = FocusNode();
+  final _descFocus = FocusNode();
+
   late SportType _type = _initial?.type ?? SportType.run;
-  late DateTime _start = _initial?.startTime ?? DateTime.now();
-  String? _dateError;
+  late DateTime _date = _initial?.startTime ?? DateTime.now();
+  late TimeOfDay _time = TimeOfDay.fromDateTime(_initial?.startTime ?? DateTime.now());
   bool _saving = false;
 
   bool get _editing => _initial != null;
@@ -37,37 +46,25 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   // Durasi dan jarak rekaman GPS berasal dari rute, jadi tidak boleh diubah manual
   bool get _fromGps => _initial?.points.isNotEmpty ?? false;
 
+  DateTime get _start => DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
+
+  int get _seconds =>
+      (int.tryParse(_hoursCtrl.text.trim()) ?? 0) * 3600 + (int.tryParse(_minutesCtrl.text.trim()) ?? 0) * 60;
+
   @override
   void dispose() {
     for (final c in [_titleCtrl, _descCtrl, _hoursCtrl, _minutesCtrl, _distanceCtrl]) {
       c.dispose();
     }
+    for (final f in [_hoursFocus, _minutesFocus, _distanceFocus, _descFocus]) {
+      f.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _pickDateTime() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _start,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_start));
-    if (time == null) return;
-    setState(() {
-      _start = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-      _dateError = null;
-    });
-  }
-
-  int get _seconds =>
-      (int.tryParse(_hoursCtrl.text.trim()) ?? 0) * 3600 + (int.tryParse(_minutesCtrl.text.trim()) ?? 0) * 60;
-
   Future<void> _save() async {
-    final formValid = _formKey.currentState!.validate();
-    setState(() => _dateError = _start.isAfter(DateTime.now()) ? 'Waktu mulai tidak boleh di masa depan' : null);
-    if (!formValid || _dateError != null) return;
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
     final title = _titleCtrl.text.trim();
@@ -81,32 +78,40 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
       distanceMeters: _fromGps ? _initial!.distanceMeters : (Validators.parseNumber(_distanceCtrl.text) ?? 0) * 1000,
       points: _initial?.points ?? const [],
     );
-    final store = ActivityStore.instance;
-    await (_editing ? store.update(activity) : store.add(activity));
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final store = ActivityStore.instance;
+      await (_editing ? store.update(activity) : store.add(activity));
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      messenger.error("Aktivitas gagal disimpan. Coba lagi.");
+      return;
+    }
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(_editing ? "Aktivitas diperbarui" : "Aktivitas ditambahkan")));
+    messenger.success(_editing ? "Aktivitas diperbarui" : "Aktivitas \"${activity.title}\" ditambahkan");
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_editing ? "Edit Aktivitas" : "Aktivitas Manual"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(_editing ? "Edit Aktivitas" : "Aktivitas Manual")),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20.0),
+        child: FormLayout(
+          action: PrimaryButton(
+            text: _editing ? "Simpan Perubahan" : "Simpan Aktivitas",
+            icon: Icons.check,
+            loading: _saving,
+            onPressed: _save,
+          ),
           children: [
-            const Text("Jenis Olahraga", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SectionLabel("Jenis olahraga"),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 for (final type in SportType.values)
                   ChoiceChip(
@@ -117,84 +122,130 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
-            TextFormField(
+            const SizedBox(height: AppSpacing.xl),
+            AppTextField(
               controller: _titleCtrl,
+              label: "Judul",
+              hint: defaultTitle(_type, _start),
+              helper: "Kosongkan untuk memakai judul otomatis",
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(labelText: "Judul", hintText: defaultTitle(_type, _start)),
+              maxLength: 60,
+              // Tanggal dan jam diisi lewat picker, jadi "berikutnya" lompat ke isian durasi
+              nextFocus: _fromGps ? _descFocus : _hoursFocus,
               validator: Validators.title(label: "Judul", max: 60, required: false),
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event),
-              title: Text("${formatDate(_start)} pukul ${formatTime(_start)}"),
-              subtitle: _dateError == null
-                  ? null
-                  : Text(_dateError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              trailing: const Icon(Icons.edit, size: 18),
-              onTap: _pickDateTime,
+            const SizedBox(height: AppSpacing.md),
+            const SectionLabel("Waktu mulai"),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: PickerField<DateTime>(
+                    label: "Tanggal",
+                    icon: Icons.event,
+                    initialValue: _date,
+                    display: (v) => v == null ? "Pilih tanggal" : formatDate(v),
+                    pick: (current) => showDatePicker(
+                      context: context,
+                      initialDate: current ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                      helpText: "Tanggal aktivitas",
+                    ),
+                    onChanged: (v) => setState(() => _date = v),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: PickerField<TimeOfDay>(
+                    label: "Jam",
+                    icon: Icons.schedule,
+                    initialValue: _time,
+                    display: (v) => v == null ? "--:--" : v.format(context),
+                    pick: (current) => showTimePicker(
+                      context: context,
+                      initialTime: current ?? TimeOfDay.now(),
+                      helpText: "Jam mulai",
+                    ),
+                    onChanged: (v) => setState(() => _time = v),
+                    validator: (_) => _start.isAfter(DateTime.now()) ? "Jam belum lewat" : null,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.xl),
+            const SectionLabel("Durasi dan jarak"),
             if (_fromGps)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: Text(
                   "Durasi dan jarak berasal dari rekaman GPS sehingga tidak dapat diubah.",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: muted, fontSize: 12),
                 ),
               ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _hoursCtrl,
+                    focusNode: _hoursFocus,
+                    nextFocus: _minutesFocus,
+                    label: "Jam",
+                    suffixText: "j",
                     enabled: !_fromGps,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: "Jam"),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
                     validator: Validators.wholeNumber(label: "Jam", max: 23),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: TextFormField(
+                  child: AppTextField(
                     controller: _minutesCtrl,
+                    focusNode: _minutesFocus,
+                    nextFocus: _distanceFocus,
+                    label: "Menit",
+                    suffixText: "m",
                     enabled: !_fromGps,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: "Menit"),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
                     validator: (v) {
                       final error = Validators.wholeNumber(label: "Menit", max: 59)(v);
                       if (error != null || _fromGps) return error;
-                      return _seconds <= 0 ? "Isi durasi aktivitas" : null;
+                      return _seconds <= 0 ? "Isi durasi minimal 1 menit" : null;
                     },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
               controller: _distanceCtrl,
+              focusNode: _distanceFocus,
+              nextFocus: _descFocus,
+              label: "Jarak",
+              suffixText: "km",
+              hint: "Contoh: 5,2",
+              helper: "Opsional, misalnya untuk latihan beban",
               enabled: !_fromGps,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: "Jarak (km)", hintText: "Kosongkan kalau tidak ada"),
-              validator: _fromGps ? null : Validators.positiveNumber(label: "Jarak", max: 500, unit: "km", required: false),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+              validator:
+                  _fromGps ? null : Validators.positiveNumber(label: "Jarak", max: 500, unit: "km", required: false),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
               controller: _descCtrl,
-              maxLines: 3,
+              focusNode: _descFocus,
+              label: "Catatan",
+              hint: "Bagaimana latihannya? (opsional)",
+              maxLines: 4,
               maxLength: 300,
-              decoration: const InputDecoration(hintText: "Catatan (opsional)"),
+              textCapitalization: TextCapitalization.sentences,
             ),
-            const SizedBox(height: 24),
-            _saving
-                ? const Center(child: CircularProgressIndicator())
-                : PrimaryButton(
-                    text: _editing ? "Simpan Perubahan" : "Simpan Aktivitas",
-                    icon: Icons.check,
-                    onPressed: _save,
-                  ),
           ],
         ),
       ),

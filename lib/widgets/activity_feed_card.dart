@@ -42,12 +42,12 @@ class ActivityFeedCard extends StatelessWidget {
                         Text(ProfileService.instance.profile?.name ?? 'Pengguna', style: const TextStyle(fontWeight: FontWeight.bold)),
                         Row(
                           children: [
-                            Icon(activity.type.icon, size: 14, color: Colors.grey),
+                            Icon(activity.type.icon, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
                                 formatRelativeDateTime(activity.startTime),
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -103,7 +103,7 @@ class _FeedStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 2),
           Text(value, style: AppTheme.display(22)),
         ],

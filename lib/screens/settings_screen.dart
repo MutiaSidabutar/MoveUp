@@ -5,58 +5,41 @@ import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/reminder_store.dart';
 import 'package:moveup/services/settings_service.dart';
 import 'package:moveup/theme.dart';
+import 'package:moveup/widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  Future<bool> _confirm(BuildContext context, String title, String message, String action) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(action, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-    return ok == true;
-  }
-
   Future<void> _loadSample(BuildContext context) async {
-    final ok = await _confirm(
+    final ok = await showConfirmDialog(
       context,
-      "Muat data simulasi?",
-      "Semua aktivitas, target, dan pengingat di perangkat ini akan diganti dengan data contoh.",
-      "Ganti Data",
+      title: "Muat data simulasi?",
+      message: "Semua aktivitas, target, dan pengingat di perangkat ini akan diganti dengan data contoh.",
+      confirmLabel: "Ganti Data",
+      icon: Icons.dataset_outlined,
     );
-    if (!ok) return;
+    if (!ok || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     await ActivityStore.instance.resetToSample();
     await GoalStore.instance.resetToSample();
     await ReminderStore.instance.resetToSample();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data simulasi dimuat")));
-    }
+    messenger.success("Data simulasi dimuat");
   }
 
   Future<void> _clearAll(BuildContext context) async {
-    final ok = await _confirm(
+    final ok = await showConfirmDialog(
       context,
-      "Hapus semua data?",
-      "Semua aktivitas, target, dan pengingat akan dihapus permanen. Profil akun tidak ikut terhapus.",
-      "Hapus",
+      title: "Hapus semua data?",
+      message: "Semua aktivitas, target, dan pengingat akan dihapus permanen. Profil akun tidak ikut terhapus.",
+      confirmLabel: "Hapus Semua",
+      icon: Icons.delete_sweep_outlined,
     );
-    if (!ok) return;
+    if (!ok || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     await ActivityStore.instance.replaceAll([]);
     await GoalStore.instance.replaceAll([]);
     await ReminderStore.instance.replaceAll([]);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Semua data dihapus")));
-    }
+    messenger.success("Semua data dihapus");
   }
 
   @override
@@ -69,7 +52,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListenableBuilder(
         listenable: Listenable.merge([settings, ActivityStore.instance, GoalStore.instance, ReminderStore.instance]),
         builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(20),
+          padding: AppSpacing.page,
           children: [
             Text("Tampilan", style: AppTheme.display(22)),
             const SizedBox(height: 12),
@@ -105,8 +88,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
-              title: const Text("Hapus semua data", style: TextStyle(color: Colors.red)),
+              leading: Icon(Icons.delete_sweep_outlined, color: scheme.error),
+              title: Text("Hapus semua data", style: TextStyle(color: scheme.error)),
               subtitle: const Text("Aktivitas, target, dan pengingat di perangkat ini"),
               onTap: () => _clearAll(context),
             ),

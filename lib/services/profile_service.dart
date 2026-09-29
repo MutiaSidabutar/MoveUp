@@ -28,7 +28,17 @@ class ProfileService extends ChangeNotifier {
     return _profile;
   }
 
+  // Profil yang hanya ada di memori (akun demo), tidak dibaca atau ditulis ke Firestore
+  bool _local = false;
+
+  void setLocal(UserProfile profile) {
+    _local = true;
+    _profile = profile;
+    notifyListeners();
+  }
+
   Future<void> save(UserProfile profile, {bool isNew = false}) async {
+    if (_local) return setLocal(profile);
     await _doc(profile.uid).set({
       ...profile.toMap(),
       if (isNew) 'createdAt': FieldValue.serverTimestamp(),
@@ -39,6 +49,7 @@ class ProfileService extends ChangeNotifier {
   }
 
   void clear() {
+    _local = false;
     _profile = null;
     notifyListeners();
   }

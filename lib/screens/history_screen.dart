@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
+import 'package:moveup/screens/add_activity_screen.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
@@ -51,7 +52,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 final activities =
                     store.activities.where((a) => _filter == null || a.type == _filter).toList();
                 if (activities.isEmpty) {
-                  return const EmptyStateWidget(message: "Belum ada aktivitas", icon: Icons.history);
+                  // Kosong karena filter berbeda dengan kosong karena belum pernah mencatat
+                  if (_filter != null) {
+                    return EmptyStateWidget(
+                      title: "Tidak ada ${_filter!.label.toLowerCase()}",
+                      message: "Belum ada aktivitas dengan jenis ini.",
+                      icon: Icons.filter_alt_off_outlined,
+                    );
+                  }
+                  return EmptyStateWidget(
+                    title: "Belum ada aktivitas",
+                    message: "Aktivitas yang direkam atau dicatat manual akan muncul di sini.",
+                    icon: Icons.history,
+                    actionLabel: "Catat Manual",
+                    onAction: () =>
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AddActivityScreen())),
+                  );
                 }
 
                 final children = <Widget>[];
@@ -61,7 +77,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   if (month != lastMonth) {
                     children.add(Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(month, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                      child: Text(month, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ));
                     lastMonth = month;
                   }

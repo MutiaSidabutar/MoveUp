@@ -37,7 +37,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     try {
       await AuthService.changePassword(_currentCtrl.text, _newCtrl.text);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password berhasil diganti")));
+      ScaffoldMessenger.of(context).success("Password berhasil diganti");
       Navigator.pop(context);
     } on AuthFailure catch (e) {
       if (!mounted) return;
@@ -67,15 +67,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       appBar: AppBar(title: const Text("KEAMANAN AKUN")),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
+        child: FormLayout(
+          action: PrimaryButton(text: "Ganti Password", icon: Icons.lock_reset, loading: _saving, onPressed: _save),
           children: [
             const SectionLabel("Ganti password"),
-            PasswordField(controller: _currentCtrl, label: "Password saat ini", validator: Validators.requiredPassword),
+            PasswordField(
+              controller: _currentCtrl,
+              label: "Password saat ini",
+              textInputAction: TextInputAction.next,
+              validator: Validators.requiredPassword,
+            ),
             const SizedBox(height: 16),
             PasswordField(
               controller: _newCtrl,
               label: "Password baru",
+              textInputAction: TextInputAction.next,
               validator: (v) => v == _currentCtrl.text ? "Password baru harus berbeda" : Validators.newPassword(v),
               onChanged: (_) => setState(() {}),
             ),
@@ -84,14 +90,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             PasswordField(
               controller: _confirmCtrl,
               label: "Konfirmasi password baru",
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _save(),
               validator: Validators.confirmPassword(() => _newCtrl.text),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
               Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600)),
             ],
-            const SizedBox(height: 32),
-            PrimaryButton(text: _saving ? "Menyimpan…" : "Ganti Password", onPressed: _saving ? () {} : _save),
           ],
         ),
       ),

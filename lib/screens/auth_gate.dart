@@ -43,6 +43,13 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AuthService.demoSignedIn,
+      builder: (context, demo, _) => demo ? const MainScreen() : _firebaseGate(context),
+    );
+  }
+
+  Widget _firebaseGate(BuildContext context) {
     return StreamBuilder<User?>(
       stream: AuthService.userChanges,
       builder: (context, snapshot) {

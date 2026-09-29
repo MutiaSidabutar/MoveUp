@@ -20,6 +20,7 @@ class SaveActivityScreen extends StatefulWidget {
 class _SaveActivityScreenState extends State<SaveActivityScreen> {
   late final _titleCtrl = TextEditingController(text: widget.draft.title);
   final _descCtrl = TextEditingController();
+  final _descFocus = FocusNode();
   late SportType _type = widget.draft.type;
   bool _saving = false;
 
@@ -27,6 +28,7 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _descFocus.dispose();
     super.dispose();
   }
 
@@ -52,27 +54,28 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
       distanceMeters: d.distanceMeters,
       points: d.points,
     );
-    await ActivityStore.instance.add(activity);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ActivityStore.instance.add(activity);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      messenger.error("Aktivitas gagal disimpan. Coba lagi.");
+      return;
+    }
     if (!mounted) return;
+    messenger.success("Aktivitas \"${activity.title}\" disimpan");
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ActivityDetailScreen(activity: activity)));
   }
 
   Future<void> _discard() async {
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Buang aktivitas?"),
-        content: const Text("Aktivitas ini tidak akan disimpan."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Buang", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final discard = await showConfirmDialog(
+      context,
+      title: "Buang aktivitas?",
+      message: "Rekaman ini tidak akan disimpan dan tidak bisa dikembalikan.",
+      confirmLabel: "Buang",
+      icon: Icons.delete_outline,
     );
-    if (discard == true && mounted) Navigator.pop(context);
+    if (discard && mounted) Navigator.pop(context);
   }
 
   @override
@@ -94,20 +97,34 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
         if (!didPop && !_saving) _discard();
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text("Simpan Aktivitas"), backgroundColor: Colors.transparent, elevation: 0),
-        body: ListView(
-          padding: const EdgeInsets.all(20),
+        appBar: AppBar(title: const Text("Simpan Aktivitas")),
+        body: FormLayout(
+          action: PrimaryButton(text: "Simpan Aktivitas", icon: Icons.check, loading: _saving, onPressed: _save),
+          secondaryAction: TextButton(
+            onPressed: _saving ? null : _discard,
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text("Buang aktivitas"),
+          ),
           children: [
-            TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: "Judul")),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(hintText: "Bagaimana aktivitasnya? Ceritakan di sini"),
+            AppTextField(
+              controller: _titleCtrl,
+              label: "Judul",
+              textCapitalization: TextCapitalization.sentences,
+              maxLength: 60,
+              nextFocus: _descFocus,
             ),
-            const SizedBox(height: 24),
-            const Text("Jenis Olahraga", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              controller: _descCtrl,
+              focusNode: _descFocus,
+              label: "Catatan",
+              hint: "Bagaimana aktivitasnya? Ceritakan di sini",
+              maxLines: 4,
+              maxLength: 300,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            const SectionLabel("Jenis olahraga"),
             Wrap(
               spacing: 8,
               children: [
@@ -141,13 +158,6 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-            PrimaryButton(text: _saving ? "Menyimpan…" : "Simpan Aktivitas", onPressed: _saving ? () {} : _save),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _saving ? null : _discard,
-              child: const Text("Buang aktivitas", style: TextStyle(color: Colors.red)),
-            ),
           ],
         ),
       ),
@@ -159,7 +169,7 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
       children: [
         Text(value, style: AppTheme.display(22)),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
       ],
     );
   }
