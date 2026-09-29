@@ -4,6 +4,7 @@ import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/utils/validators.dart';
+import 'package:moveup/widgets.dart';
 
 // Isian profil yang dipakai bersama oleh pendaftaran, lengkapi profil, dan edit profil
 class ProfileDraft {
@@ -49,23 +50,6 @@ class ProfileDraft {
       );
 
   static String _trim(double v) => v == v.roundToDouble() ? v.round().toString() : v.toString();
-}
-
-class SectionLabel extends StatelessWidget {
-  const SectionLabel(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text.toUpperCase(),
-        style: AppTheme.display(15, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 2),
-      ),
-    );
-  }
 }
 
 // Data fisik: jenis kelamin, tanggal lahir, berat, dan tinggi badan
@@ -115,7 +99,7 @@ class BodyInfoFields extends StatelessWidget {
                   onChanged();
                 },
               ),
-              _FieldError(field.errorText),
+              FieldError(field.errorText),
             ],
           ),
         ),
@@ -128,7 +112,7 @@ class BodyInfoFields extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.control),
                 onTap: () => _pickBirthDate(context, field),
                 child: InputDecorator(
                   decoration: const InputDecoration(prefixIcon: Icon(Icons.cake_outlined)),
@@ -137,7 +121,7 @@ class BodyInfoFields extends StatelessWidget {
                       : '${formatDate(field.value!)} · ${ageOn(field.value!, DateTime.now())} tahun'),
                 ),
               ),
-              _FieldError(field.errorText),
+              FieldError(field.errorText),
             ],
           ),
         ),
@@ -201,7 +185,7 @@ class PreferenceFields extends StatelessWidget {
           Card(
             margin: const EdgeInsets.only(bottom: 8),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.card),
               side: BorderSide(color: draft.level == level ? scheme.primary : scheme.outline, width: draft.level == level ? 2 : 1),
             ),
             child: ListTile(
@@ -242,26 +226,11 @@ class PreferenceFields extends StatelessWidget {
                     ),
                 ],
               ),
-              _FieldError(field.errorText),
+              FieldError(field.errorText),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _FieldError extends StatelessWidget {
-  const _FieldError(this.text);
-
-  final String? text;
-
-  @override
-  Widget build(BuildContext context) {
-    if (text == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, left: 12),
-      child: Text(text!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
     );
   }
 }
@@ -326,9 +295,9 @@ class PasswordStrengthBar extends StatelessWidget {
     final strength = Validators.passwordStrength(password);
     if (strength == 0) return const SizedBox.shrink();
     final (label, color) = switch (strength) {
-      1 => ('Lemah', Colors.red),
-      2 => ('Sedang', Colors.orange),
-      _ => ('Kuat', Colors.green),
+      1 => ('Lemah', AppTheme.danger),
+      2 => ('Sedang', AppTheme.warning),
+      _ => ('Kuat', AppTheme.success),
     };
     return Padding(
       padding: const EdgeInsets.only(top: 8),

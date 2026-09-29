@@ -50,11 +50,14 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _PlanSection(now: now),
               if (activities.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 48),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xxl),
                   child: EmptyStateWidget(
-                    message: "Belum ada aktivitas.\nTekan Rekam untuk mulai bergerak!",
+                    title: "Belum ada aktivitas",
+                    message: "Tekan Rekam untuk mulai bergerak, atau catat latihan secara manual.",
                     icon: Icons.directions_run,
+                    actionLabel: "Catat Manual",
+                    onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddActivityScreen())),
                   ),
                 )
               else ...[
@@ -104,9 +107,9 @@ class _WeekSummaryCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _summaryStat("Aktivitas", "${week.length}"),
-                _summaryStat("Jarak", "${formatKm(meters)} km"),
-                _summaryStat("Waktu", formatDurationShort(seconds)),
+                _summaryStat(context, "Aktivitas", "${week.length}"),
+                _summaryStat(context, "Jarak", "${formatKm(meters)} km"),
+                _summaryStat(context, "Waktu", formatDurationShort(seconds)),
               ],
             ),
             const SizedBox(height: 16),
@@ -117,12 +120,12 @@ class _WeekSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _summaryStat(String label, String value) {
+  Widget _summaryStat(BuildContext context, String label, String value) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 2),
           Text(value, style: AppTheme.display(22)),
         ],
@@ -173,9 +176,12 @@ class _PlanSection extends StatelessWidget {
             ],
           ),
           if (ongoing.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: Text("Semua target periode ini sudah tercapai. Mantap!", style: TextStyle(color: Colors.grey)),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                "Semua target periode ini sudah tercapai. Mantap!",
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
             )
           else
             for (final p in ongoing)

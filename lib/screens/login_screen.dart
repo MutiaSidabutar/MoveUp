@@ -29,6 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
+    if (AuthService.skipLogin) {
+      AuthService.enterDemo();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
@@ -86,9 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.sendPasswordReset(email);
       // Pesan dibuat sama untuk email terdaftar maupun tidak, supaya daftar akun tidak bisa ditebak
-      messenger.showSnackBar(SnackBar(content: Text("Jika $email terdaftar, tautan reset password sudah dikirim.")));
+      messenger.success("Jika $email terdaftar, tautan reset password sudah dikirim.");
     } on AuthFailure catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.error(e.message);
     }
   }
 
@@ -130,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               if (_error != null) _ErrorBanner(message: _error!),
               const SizedBox(height: 16),
-              PrimaryButton(text: _loading ? "Memproses…" : "Masuk", onPressed: _loading ? () {} : _submit),
+              PrimaryButton(text: "Masuk", icon: Icons.login, loading: _loading, onPressed: _submit),
               const SizedBox(height: 24),
               const _OrDivider(),
               const SizedBox(height: 24),
@@ -196,7 +201,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
       final signedIn = await AuthService.signInWithGoogle();
       if (signedIn) navigator.popUntil((route) => route.isFirst);
     } on AuthFailure catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.error(e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

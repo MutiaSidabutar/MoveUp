@@ -31,7 +31,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       await ProfileService.instance.save(_draft.toProfile(uid: user.uid, email: user.email!), isNew: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal menyimpan profil. Coba lagi.")));
+        showErrorMessage(context, "Gagal menyimpan profil. Coba lagi.");
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -46,8 +46,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
+        child: FormLayout(
+          action: PrimaryButton(text: "Simpan Profil", icon: Icons.check, loading: _saving, onPressed: _save),
           children: [
             Text("LENGKAPI PROFIL", style: AppTheme.display(36, letterSpacing: 1.5)),
             const SizedBox(height: 4),
@@ -56,12 +56,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
-            TextFormField(
+            AppTextField(
               initialValue: _draft.name,
+              label: "Nama lengkap",
+              prefixIcon: Icons.person_outline,
               textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
               validator: Validators.name,
               onChanged: (v) => _draft.name = v,
-              decoration: const InputDecoration(labelText: "Nama lengkap", prefixIcon: Icon(Icons.person_outline)),
             ),
             const SizedBox(height: 20),
             BodyInfoFields(draft: _draft, onChanged: () => setState(() {})),
@@ -83,8 +85,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       style: TextStyle(color: Theme.of(context).colorScheme.error))
                   : null,
             ),
-            const SizedBox(height: 16),
-            PrimaryButton(text: _saving ? "Menyimpan…" : "Simpan Profil", onPressed: _saving ? () {} : _save),
           ],
         ),
       ),

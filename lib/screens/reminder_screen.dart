@@ -16,18 +16,16 @@ class ReminderScreen extends StatelessWidget {
   Future<void> _delete(BuildContext context, Reminder reminder) async {
     final messenger = ScaffoldMessenger.of(context);
     await ReminderStore.instance.remove(reminder.id);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text("\"${reminder.title}\" dihapus"),
-        action: SnackBarAction(label: "Urungkan", onPressed: () => ReminderStore.instance.add(reminder)),
-      ));
+    messenger.success(
+      "\"${reminder.title}\" dihapus",
+      action: SnackBarAction(label: "Urungkan", onPressed: () => ReminderStore.instance.add(reminder)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Pengaturan Reminder"), backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(title: const Text("Pengaturan Reminder")),
       body: ListenableBuilder(
         listenable: Listenable.merge([ReminderStore.instance, GoalStore.instance]),
         builder: (context, _) {
@@ -44,7 +42,8 @@ class ReminderScreen extends StatelessWidget {
               Expanded(
                 child: reminders.isEmpty
                     ? const EmptyStateWidget(
-                        message: "Belum ada pengingat.\nBuat jadwal latihan rutinmu.",
+                        title: "Belum ada pengingat",
+                        message: "Buat jadwal latihan rutinmu dengan tombol di bawah.",
                         icon: Icons.notifications_none,
                       )
                     : ListView(
@@ -58,11 +57,11 @@ class ReminderScreen extends StatelessWidget {
                                 subtitle: Text("${next.$1.title} · ${formatRelativeDateTime(next.$2!)}"),
                               ),
                             ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               "Geser ke kiri untuk menghapus, ketuk untuk mengubah.",
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                             ),
                           ),
                           for (final r in reminders) ...[
@@ -98,7 +97,7 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final goal = reminder.goalId == null ? null : GoalStore.instance.byId(reminder.goalId!);
-    final muted = reminder.enabled ? null : Colors.grey;
+    final muted = reminder.enabled ? null : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Dismissible(
       key: ValueKey(reminder.id),
@@ -106,8 +105,15 @@ class _ReminderTile extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
+        color: Theme.of(context).colorScheme.error,
         child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      // Swipe tetap meminta konfirmasi supaya pengingat tidak terhapus karena geseran tidak sengaja
+      confirmDismiss: (_) => showConfirmDialog(
+        context,
+        title: "Hapus reminder?",
+        message: "\"${reminder.title}\" akan dihapus dan tidak lagi mengingatkan Anda.",
+        confirmLabel: "Hapus",
       ),
       onDismissed: (_) => onDelete(),
       child: ListTile(

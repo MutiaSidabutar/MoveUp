@@ -1,27 +1,45 @@
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:moveup/theme.dart';
 
-// Button Components
+// ---------------------------------------------------------------------------
+// Tombol
+// ---------------------------------------------------------------------------
+
+// Aksi utama satu layar. [loading] menonaktifkan tombol supaya tidak terkirim dua kali.
 class PrimaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
+  final bool loading;
 
-  const PrimaryButton({super.key, required this.text, required this.onPressed, this.icon});
+  const PrimaryButton({super.key, required this.text, required this.onPressed, this.icon, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: loading ? null : onPressed,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-            Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            if (loading)
+              SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2, color: onPrimary))
+            else if (icon != null)
+              Icon(icon, size: 20),
+            if (loading || icon != null) const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
       ),
@@ -29,25 +47,79 @@ class PrimaryButton extends StatelessWidget {
   }
 }
 
+// Aksi pendamping; [destructive] untuk aksi yang membuang data
 class SecondaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool destructive;
 
-  const SecondaryButton({super.key, required this.text, required this.onPressed});
+  const SecondaryButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.icon,
+    this.destructive = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final color = destructive ? Theme.of(context).colorScheme.error : null;
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
         onPressed: onPressed,
-        child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        style: color == null
+            ? null
+            : OutlinedButton.styleFrom(foregroundColor: color, side: BorderSide(color: color, width: 1.5)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: AppSpacing.sm)],
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Cards
+// ---------------------------------------------------------------------------
+// Kartu
+// ---------------------------------------------------------------------------
+
+// Kartu dasar dengan padding standar; bisa diketuk kalau [onTap] diisi
+class AppCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
+
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.margin,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: margin,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+    );
+  }
+}
+
 class StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -64,23 +136,28 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
-                Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
+    final theme = Theme.of(context);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
@@ -106,27 +183,28 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: theme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.control),
           ),
-          child: Icon(icon, color: Theme.of(context).primaryColor),
+          child: Icon(icon, color: theme.primaryColor),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(primaryValue, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(secondaryValue, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(secondaryValue, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
       ),
@@ -134,27 +212,332 @@ class ActivityCard extends StatelessWidget {
   }
 }
 
-// Empty State
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+// Tampilan saat daftar kosong; [actionLabel] + [onAction] memberi jalan keluar langsung
 class EmptyStateWidget extends StatelessWidget {
   final String message;
   final IconData icon;
+  final String? title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
-  const EmptyStateWidget({super.key, required this.message, this.icon = Icons.inbox});
+  const EmptyStateWidget({
+    super.key,
+    required this.message,
+    this.icon = Icons.inbox,
+    this.title,
+    this.actionLabel,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
-          const SizedBox(height: 16),
-          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16)),
-        ],
+      child: SingleChildScrollView(
+        padding: AppSpacing.page,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 64, color: muted.withValues(alpha: 0.6)),
+            const SizedBox(height: AppSpacing.lg),
+            if (title != null) ...[
+              Text(title!, textAlign: TextAlign.center, style: AppTheme.display(24)),
+              const SizedBox(height: AppSpacing.xs),
+            ],
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 16)),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              OutlinedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.add),
+                label: Text(actionLabel!),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Form
+// ---------------------------------------------------------------------------
+
+// Judul kecil di atas kelompok isian
+class SectionLabel extends StatelessWidget {
+  const SectionLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Text(
+        text.toUpperCase(),
+        style: AppTheme.display(15, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 2),
+      ),
+    );
+  }
+}
+
+// Pesan error untuk isian yang bukan TextFormField (chip, segmented button)
+class FieldError extends StatelessWidget {
+  const FieldError(this.text, {super.key});
+
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: AppSpacing.md),
+      child: Text(text!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
+    );
+  }
+}
+
+// Isian teks standar: selalu berlabel, dan tombol "berikutnya" di keyboard
+// memindahkan fokus ke [nextFocus] (atau ke isian berikutnya kalau tidak diisi)
+class AppTextField extends StatelessWidget {
+  const AppTextField({
+    super.key,
+    required this.label,
+    this.controller,
+    this.initialValue,
+    this.hint,
+    this.helper,
+    this.validator,
+    this.onChanged,
+    this.keyboardType,
+    this.inputFormatters,
+    this.textInputAction,
+    this.focusNode,
+    this.nextFocus,
+    this.onSubmitted,
+    this.prefixIcon,
+    this.suffixText,
+    this.maxLines = 1,
+    this.maxLength,
+    this.enabled = true,
+    this.textCapitalization = TextCapitalization.none,
+  });
+
+  final String label;
+  final TextEditingController? controller;
+  final String? initialValue;
+  final String? hint;
+  final String? helper;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onChanged;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextInputAction? textInputAction;
+  final FocusNode? focusNode;
+  final FocusNode? nextFocus;
+  final ValueChanged<String>? onSubmitted;
+  final IconData? prefixIcon;
+  final String? suffixText;
+  final int maxLines;
+  final int? maxLength;
+  final bool enabled;
+  final TextCapitalization textCapitalization;
+
+  bool get _multiline => maxLines > 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      focusNode: focusNode,
+      enabled: enabled,
+      validator: validator,
+      onChanged: onChanged,
+      keyboardType: keyboardType ?? (_multiline ? TextInputType.multiline : null),
+      inputFormatters: inputFormatters,
+      textInputAction: textInputAction ?? (_multiline ? TextInputAction.newline : TextInputAction.next),
+      textCapitalization: textCapitalization,
+      maxLines: maxLines,
+      minLines: _multiline ? 2 : null,
+      maxLength: maxLength,
+      onFieldSubmitted: (value) {
+        nextFocus?.requestFocus();
+        onSubmitted?.call(value);
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        helperText: helper,
+        helperMaxLines: 2,
+        alignLabelWithHint: _multiline,
+        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+        suffixText: suffixText,
+      ),
+    );
+  }
+}
+
+// Isian yang nilainya dipilih lewat dialog (tanggal, jam). Tampil seperti field teks
+// dengan label dan pesan error, dan ikut divalidasi oleh Form.
+class PickerField<T> extends FormField<T> {
+  PickerField({
+    super.key,
+    required String label,
+    required String Function(T? value) display,
+    required Future<T?> Function(T? current) pick,
+    IconData? icon,
+    ValueChanged<T>? onChanged,
+    super.initialValue,
+    super.validator,
+    super.enabled,
+  }) : super(
+          builder: (field) => InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.control),
+            onTap: !field.widget.enabled
+                ? null
+                : () async {
+                    final picked = await pick(field.value);
+                    if (picked == null) return;
+                    field.didChange(picked);
+                    onChanged?.call(picked);
+                  },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: label,
+                prefixIcon: icon == null ? null : Icon(icon),
+                suffixIcon: const Icon(Icons.expand_more),
+                errorText: field.errorText,
+                enabled: field.widget.enabled,
+              ),
+              child: Text(display(field.value), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        );
+}
+
+// Kerangka layar form: isian bisa di-scroll, aksi utama menempel di bawah.
+// Scaffold mengecilkan body saat keyboard muncul, jadi tombol selalu tepat di atas keyboard.
+class FormLayout extends StatelessWidget {
+  const FormLayout({super.key, required this.children, required this.action, this.secondaryAction});
+
+  final List<Widget> children;
+  final Widget action;
+  final Widget? secondaryAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: AppSpacing.page,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: children,
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            border: Border(top: BorderSide(color: theme.dividerColor)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  action,
+                  if (secondaryAction != null) ...[const SizedBox(height: AppSpacing.sm), secondaryAction!],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dialog dan pesan
+// ---------------------------------------------------------------------------
+
+// Konfirmasi sebelum aksi yang tidak bisa dibatalkan. "Batal" mendapat fokus awal
+// supaya menekan Enter tidak langsung menghapus.
+Future<bool> showConfirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String confirmLabel,
+  bool destructive = true,
+  IconData icon = Icons.warning_amber_rounded,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      final color = destructive ? scheme.error : scheme.primary;
+      return AlertDialog(
+        icon: Icon(icon, color: color, size: 32),
+        title: Text(title, textAlign: TextAlign.center),
+        content: SingleChildScrollView(child: Text(message, textAlign: TextAlign.center)),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(autofocus: true, onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: destructive ? scheme.onError : scheme.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      );
+    },
+  );
+  return result == true;
+}
+
+// Pesan singkat setelah aksi berhasil atau gagal. Dipasang pada ScaffoldMessengerState
+// supaya bisa dipakai setelah `await` tanpa menyentuh context yang mungkin sudah hilang.
+extension AppMessages on ScaffoldMessengerState {
+  void success(String message, {SnackBarAction? action}) => _show(message, Icons.check_circle_outline, action: action);
+
+  void error(String message) => _show(message, Icons.error_outline, error: true);
+
+  void _show(String message, IconData icon, {bool error = false, SnackBarAction? action}) {
+    final color = error ? Colors.white : Theme.of(context).colorScheme.surface;
+    this
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        backgroundColor: error ? AppTheme.danger : null,
+        action: action,
+        content: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: Text(message, style: TextStyle(color: color))),
+          ],
+        ),
+      ));
+  }
+}
+
+void showSuccessMessage(BuildContext context, String message, {SnackBarAction? action}) =>
+    ScaffoldMessenger.of(context).success(message, action: action);
+
+void showErrorMessage(BuildContext context, String message) => ScaffoldMessenger.of(context).error(message);
 
 // Bar Chart
 class SimpleBarChart extends StatelessWidget {
@@ -201,7 +584,7 @@ class SimpleBarChart extends StatelessWidget {
                     const SizedBox(height: 4),
                     SizedBox(
                       height: 16,
-                      child: Text(labels[i], style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      child: Text(labels[i], style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ),
                   ],
                 ),

@@ -29,10 +29,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await ProfileService.instance.save(updated);
       await FirebaseAuth.instance.currentUser?.updateDisplayName(updated.name);
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text("Profil diperbarui")));
+      messenger.success("Profil diperbarui");
       Navigator.pop(context);
     } catch (e) {
-      messenger.showSnackBar(const SnackBar(content: Text("Gagal menyimpan profil. Periksa koneksi Anda.")));
+      messenger.error("Gagal menyimpan profil. Periksa koneksi Anda.");
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -44,15 +44,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       appBar: AppBar(title: const Text("EDIT PROFIL")),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
+        child: FormLayout(
+          action: PrimaryButton(text: "Simpan Perubahan", icon: Icons.check, loading: _saving, onPressed: _save),
           children: [
-            TextFormField(
+            AppTextField(
               initialValue: _draft.name,
+              label: "Nama lengkap",
+              prefixIcon: Icons.person_outline,
               textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
               validator: Validators.name,
               onChanged: (v) => _draft.name = v,
-              decoration: const InputDecoration(labelText: "Nama lengkap", prefixIcon: Icon(Icons.person_outline)),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -64,8 +66,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             BodyInfoFields(draft: _draft, onChanged: () => setState(() {})),
             const SizedBox(height: 28),
             PreferenceFields(draft: _draft, onChanged: () => setState(() {})),
-            const SizedBox(height: 32),
-            PrimaryButton(text: _saving ? "Menyimpan…" : "Simpan Perubahan", onPressed: _saving ? () {} : _save),
           ],
         ),
       ),

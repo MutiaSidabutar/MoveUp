@@ -11,6 +11,7 @@ import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
+import 'package:moveup/widgets.dart';
 
 enum _RecordState { ready, recording, paused }
 
@@ -167,28 +168,20 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   }
 
   Future<void> _confirmDiscard() async {
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Buang aktivitas?"),
-        content: const Text("Rekaman aktivitas ini akan dihapus dan tidak bisa dikembalikan."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Buang", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final discard = await showConfirmDialog(
+      context,
+      title: "Buang aktivitas?",
+      message: "Rekaman aktivitas ini akan dihapus dan tidak bisa dikembalikan.",
+      confirmLabel: "Buang",
+      icon: Icons.delete_outline,
     );
-    if (discard == true && mounted) Navigator.pop(context);
+    if (discard && mounted) Navigator.pop(context);
   }
 
   void _pickSport() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => SafeArea(
+            builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -328,7 +321,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
                   child: Container(
                     margin: const EdgeInsets.only(top: 72, left: 16, right: 16),
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(12)),
                     child: Text(_error!, style: const TextStyle(color: Colors.white)),
                   ),
                 ),
@@ -369,9 +362,9 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
 
   Widget _buildGpsIndicator() {
     final (label, color) = switch (_accuracy) {
-      null => ("Mencari GPS…", Colors.grey),
-      final a when a <= _maxAccuracyMeters => ("GPS siap", Colors.green),
-      _ => ("GPS lemah", Colors.orange),
+      null => ("Mencari GPS…", Theme.of(context).colorScheme.onSurfaceVariant),
+      final a when a <= _maxAccuracyMeters => ("GPS siap", AppTheme.success),
+      _ => ("GPS lemah", AppTheme.warning),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
