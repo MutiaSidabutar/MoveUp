@@ -4,11 +4,13 @@ import 'package:moveup/firebase_options.dart';
 import 'package:moveup/screens/auth_gate.dart';
 import 'package:moveup/services/settings_service.dart';
 import 'package:moveup/theme.dart';
+import 'package:moveup/services/photo_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await SettingsService.instance.load();
+  await PhotoStore.init();
   runApp(const MoveUpApp());
 }
 

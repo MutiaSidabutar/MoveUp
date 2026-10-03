@@ -103,6 +103,7 @@ class Activity {
     required this.movingSeconds,
     required this.distanceMeters,
     this.points = const [],
+    this.photos = const [],
   });
 
   final String id;
@@ -113,6 +114,22 @@ class Activity {
   final int movingSeconds;
   final double distanceMeters;
   final List<TrackPoint> points;
+  // Nama file foto di folder foto aplikasi (lihat PhotoStore)
+  final List<String> photos;
+
+  bool get hasRoute => points.length > 1;
+
+  Activity copyWith({List<TrackPoint>? points, List<String>? photos}) => Activity(
+        id: id,
+        type: type,
+        title: title,
+        description: description,
+        startTime: startTime,
+        movingSeconds: movingSeconds,
+        distanceMeters: distanceMeters,
+        points: points ?? this.points,
+        photos: photos ?? this.photos,
+      );
 
   double get km => distanceMeters / 1000;
 
@@ -166,6 +183,7 @@ class Activity {
         'movingSeconds': movingSeconds,
         'distanceMeters': distanceMeters,
         'points': points.map((p) => p.toJson()).toList(),
+        'photos': photos,
       };
 
   factory Activity.fromJson(Map<String, dynamic> json) => Activity(
@@ -179,6 +197,7 @@ class Activity {
         points: ((json['points'] as List?) ?? [])
             .map((p) => TrackPoint.fromJson(p as List<dynamic>))
             .toList(),
+        photos: ((json['photos'] as List?) ?? []).cast<String>(),
       );
 }
 

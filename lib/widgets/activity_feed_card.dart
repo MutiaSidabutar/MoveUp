@@ -3,7 +3,7 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
-import 'package:moveup/widgets/route_map.dart';
+import 'package:moveup/widgets/activity_media.dart';
 
 // Kartu aktivitas di beranda, bergaya feed Strava
 class ActivityFeedCard extends StatelessWidget {
@@ -78,12 +78,8 @@ class ActivityFeedCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (activity.points.isNotEmpty)
-              SizedBox(
-                height: 180,
-                // AbsorbPointer supaya ketukan di peta membuka detail, bukan menggeser peta
-                child: AbsorbPointer(child: RouteMap(points: activity.points)),
-              ),
+            // Peta rute lalu foto, bisa digeser seperti feed Strava
+            if (ActivityMedia.hasMedia(activity)) ActivityMedia(activity: activity),
           ],
         ),
       ),

@@ -9,6 +9,8 @@ import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/services/photo_store.dart';
+import 'package:moveup/widgets/activity_media.dart';
 
 class ActivityDetailScreen extends StatelessWidget {
   const ActivityDetailScreen({super.key, required this.activity});
@@ -25,6 +27,7 @@ class ActivityDetailScreen extends StatelessWidget {
     if (!delete || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     await ActivityStore.instance.remove(activity.id);
+    await PhotoStore.deleteAll(activity.photos);
     messenger.success("Aktivitas dihapus");
     if (context.mounted) Navigator.pop(context);
   }
@@ -103,6 +106,13 @@ class ActivityDetailScreen extends StatelessWidget {
                 if (activity.description.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(activity.description),
+                ],
+                if (activity.photos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    child: ActivityMedia(activity: activity, height: 240, showMap: false),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 Row(
