@@ -30,24 +30,28 @@ TileLayer osmTileLayer(BuildContext context) {
 }
 
 class OsmAttribution extends StatelessWidget {
-  const OsmAttribution({super.key});
+  const OsmAttribution({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 3 : 6, vertical: compact ? 1 : 2),
       color: Colors.white.withValues(alpha: 0.8),
-      child: const Text('© OpenStreetMap', style: TextStyle(fontSize: 10, color: Colors.black)),
+      child: Text(compact ? '© OSM' : '© OpenStreetMap', style: TextStyle(fontSize: compact ? 7 : 10, color: Colors.black)),
     );
   }
 }
 
-// Peta rute aktivitas yang sudah direkam, otomatis di-zoom ke seluruh rute
+// Peta rute aktivitas yang sudah direkam, otomatis di-zoom ke seluruh rute.
+// [compact] untuk thumbnail kecil: garis dan penanda lebih tipis, jarak tepi lebih sempit.
 class RouteMap extends StatelessWidget {
-  const RouteMap({super.key, required this.points, this.interactive = false});
+  const RouteMap({super.key, required this.points, this.interactive = false, this.compact = false});
 
   final List<TrackPoint> points;
   final bool interactive;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +72,7 @@ class RouteMap extends StatelessWidget {
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             initialZoom: 16,
             initialCameraFit: coords.length > 1
-                ? CameraFit.coordinates(coordinates: coords, padding: const EdgeInsets.all(32), maxZoom: 17)
+                ? CameraFit.coordinates(coordinates: coords, padding: EdgeInsets.all(compact ? 8 : 32), maxZoom: 17)
                 : null,
             interactionOptions: InteractionOptions(
               flags: interactive ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.none,
@@ -79,19 +83,20 @@ class RouteMap extends StatelessWidget {
             PolylineLayer(
               polylines: [
                 for (final seg in segments)
-                  Polyline(points: seg, color: scheme.primary, strokeWidth: 4, borderColor: scheme.onPrimary, borderStrokeWidth: 1.5),
+                  Polyline(points: seg, color: scheme.primary, strokeWidth: compact ? 2.5 : 4, borderColor: scheme.onPrimary, borderStrokeWidth: compact ? 1 : 1.5),
               ],
             ),
-            MarkerLayer(
-              markers: [
-                Marker(point: coords.first, width: 16, height: 16, child: _Dot(color: scheme.onPrimary, border: scheme.primary)),
-                if (coords.length > 1)
-                  Marker(point: coords.last, width: 16, height: 16, child: _Dot(color: scheme.primary, border: scheme.onPrimary)),
-              ],
-            ),
+            if (!compact)
+              MarkerLayer(
+                markers: [
+                  Marker(point: coords.first, width: 16, height: 16, child: _Dot(color: scheme.onPrimary, border: scheme.primary)),
+                  if (coords.length > 1)
+                    Marker(point: coords.last, width: 16, height: 16, child: _Dot(color: scheme.primary, border: scheme.onPrimary)),
+                ],
+              ),
           ],
         ),
-        const Positioned(right: 4, bottom: 4, child: OsmAttribution()),
+        Positioned(right: compact ? 2 : 4, bottom: compact ? 2 : 4, child: OsmAttribution(compact: compact)),
       ],
     );
   }

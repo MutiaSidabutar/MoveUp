@@ -6,6 +6,7 @@ import 'package:moveup/services/reminder_store.dart';
 import 'package:moveup/services/settings_service.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/services/voice_coach.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -64,6 +65,29 @@ class SettingsScreen extends StatelessWidget {
               ],
               selected: {settings.themeMode},
               onSelectionChanged: (s) => settings.setThemeMode(s.first),
+            ),
+            const SizedBox(height: 32),
+            Text("Rekam Aktivitas", style: AppTheme.display(22)),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.record_voice_over_outlined),
+              title: const Text("Pengumuman suara tiap 1 km"),
+              subtitle: const Text("Jarak, waktu, pace, dan perbandingan dengan kilometer sebelumnya"),
+              value: settings.voiceCoach,
+              onChanged: settings.setVoiceCoach,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.volume_up_outlined),
+              title: const Text("Coba suara"),
+              subtitle: const Text("Contoh pengumuman kilometer ke-2"),
+              onTap: () => VoiceCoach.instance.speak(KmAnnouncer.buildAnnouncement(
+                type: SportType.run,
+                km: 2,
+                totalSeconds: 742,
+                splitSeconds: 365,
+                previousSplitSeconds: 377,
+              )),
             ),
             const SizedBox(height: 32),
             Text("Data", style: AppTheme.display(22)),

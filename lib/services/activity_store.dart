@@ -28,6 +28,19 @@ class ActivityStore extends JsonListStore<Activity> {
   @override
   List<Activity> seed() => SampleData.activities(DateTime.now());
 
+  // Data simulasi lama dibuat sebelum ada rute contoh; lengkapi supaya petanya tampil
+  @override
+  List<Activity>? upgrade(List<Activity> loaded) {
+    var changed = false;
+    final result = <Activity>[];
+    for (final a in loaded) {
+      final route = a.points.isEmpty ? SampleData.routeFor(a.id, a.type, a.distanceMeters, a.movingSeconds) : const <TrackPoint>[];
+      changed |= route.isNotEmpty;
+      result.add(route.isEmpty ? a : a.copyWith(points: route));
+    }
+    return changed ? result : null;
+  }
+
   // Aktivitas yang direkam sebelum ada fitur akun diberikan ke akun pertama yang masuk
   @override
   Future<void> beforeLoad(File file) async {

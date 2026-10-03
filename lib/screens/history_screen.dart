@@ -6,6 +6,7 @@ import 'package:moveup/screens/add_activity_screen.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/activity_media.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -70,33 +71,130 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   );
                 }
 
-                final children = <Widget>[];
+                // Judul bulan disisipkan di antara aktivitas; ListView.builder supaya peta hanya dibuat saat terlihat
+                final rows = <Object>[];
                 String? lastMonth;
                 for (final a in activities) {
                   final month = "${monthNames[a.startTime.month - 1]} ${a.startTime.year}";
-                  if (month != lastMonth) {
-                    children.add(Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(month, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    ));
-                    lastMonth = month;
-                  }
-                  children.add(ActivityCard(
-                    title: a.title,
-                    subtitle: formatRelativeDateTime(a.startTime),
-                    primaryValue: "${formatKm(a.distanceMeters)} km",
-                    secondaryValue: formatDurationShort(a.movingSeconds),
-                    icon: a.type.icon,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ActivityDetailScreen(activity: a)),
-                    ),
-                  ));
+                  if (month != lastMonth) rows.add(month);
+                  lastMonth = month;
+                  rows.add(a);
                 }
-                return ListView(padding: const EdgeInsets.symmetric(horizontal: 20), children: children);
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                  itemCount: rows.length,
+                  itemBuilder: (context, i) => switch (rows[i]) {
+                    final String month => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        child: Text(
+                          month,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    final Activity a => _HistoryTile(
+                        activity: a,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ActivityDetailScreen(activity: a)),
+                        ),
+                      ),
+                    _ => const SizedBox.shrink(),
+                  },
+                );
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// Satu baris riwayat: thumbnail foto atau peta rute, judul, waktu, dan statistik utama
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.activity, required this.onTap});
+
+  final Activity activity;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = activity;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final (paceLabel, paceValue) = paceOrSpeed(a);
+
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ActivityThumbnail(activity: a),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(a.type.icon, size: 16, color: muted),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        formatRelativeDateTime(a.startTime),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: muted),
+                      ),
+                    ),
+                    if (a.photos.isNotEmpty) ...[
+                      Icon(Icons.photo_outlined, size: 14, color: muted),
+                      Text(" ${a.photos.length}", style: TextStyle(fontSize: 12, color: muted)),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  a.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    _MiniStat("Jarak", "${formatKm(a.distanceMeters)} km"),
+                    _MiniStat(paceLabel, paceValue),
+                    _MiniStat("Waktu", formatDurationShort(a.movingSeconds)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.display(18)),
         ],
       ),
     );

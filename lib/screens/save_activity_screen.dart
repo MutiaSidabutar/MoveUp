@@ -6,6 +6,8 @@ import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
 import 'package:moveup/widgets/route_map.dart';
+import 'package:moveup/services/photo_store.dart';
+import 'package:moveup/widgets/activity_media.dart';
 
 // Layar setelah menekan "Selesai": beri judul dan deskripsi sebelum disimpan
 class SaveActivityScreen extends StatefulWidget {
@@ -22,6 +24,7 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
   final _descCtrl = TextEditingController();
   final _descFocus = FocusNode();
   late SportType _type = widget.draft.type;
+  List<String> _photos = [];
   bool _saving = false;
 
   @override
@@ -53,6 +56,7 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
       movingSeconds: d.movingSeconds,
       distanceMeters: d.distanceMeters,
       points: d.points,
+      photos: _photos,
     );
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -75,7 +79,9 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
       confirmLabel: "Buang",
       icon: Icons.delete_outline,
     );
-    if (discard && mounted) Navigator.pop(context);
+    if (!discard || !mounted) return;
+    await PhotoStore.deleteAll(_photos);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -123,6 +129,8 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
               maxLength: 300,
               textCapitalization: TextCapitalization.sentences,
             ),
+            const SizedBox(height: AppSpacing.md),
+            PhotoPickerField(photos: _photos, onChanged: (v) => setState(() => _photos = v)),
             const SizedBox(height: AppSpacing.xl),
             const SectionLabel("Jenis olahraga"),
             Wrap(

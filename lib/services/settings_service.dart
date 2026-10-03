@@ -11,8 +11,12 @@ class SettingsService extends ChangeNotifier {
   static final instance = SettingsService._();
 
   ThemeMode _themeMode = ThemeMode.system;
+  bool _voiceCoach = true;
 
   ThemeMode get themeMode => _themeMode;
+
+  // Pengumuman suara setiap 1 km saat merekam aktivitas
+  bool get voiceCoach => _voiceCoach;
 
   Future<File> _file() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -25,6 +29,7 @@ class SettingsService extends ChangeNotifier {
       if (!await file.exists()) return;
       final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _themeMode = ThemeMode.values.asNameMap()[json['themeMode']] ?? ThemeMode.system;
+      _voiceCoach = json['voiceCoach'] as bool? ?? true;
       notifyListeners();
     } catch (e) {
       debugPrint('Gagal memuat pengaturan: $e');
@@ -33,8 +38,21 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
+    await _changed();
+  }
+
+  Future<void> setVoiceCoach(bool on) async {
+    _voiceCoach = on;
+    await _changed();
+  }
+
+  Future<void> _changed() async {
     notifyListeners();
-    final file = await _file();
-    await file.writeAsString(jsonEncode({'themeMode': mode.name}));
+    try {
+      final file = await _file();
+      await file.writeAsString(jsonEncode({'themeMode': _themeMode.name, 'voiceCoach': _voiceCoach}));
+    } catch (e) {
+      debugPrint('Gagal menyimpan pengaturan: $e');
+    }
   }
 }

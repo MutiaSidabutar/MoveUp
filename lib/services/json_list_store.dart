@@ -26,6 +26,9 @@ abstract class JsonListStore<T> extends ChangeNotifier {
   // Dipanggil sebelum file dibaca, misalnya untuk memindahkan file versi lama
   Future<void> beforeLoad(File file) async {}
 
+  // Melengkapi data versi lama setelah dibaca; kembalikan null kalau tidak ada yang berubah
+  List<T>? upgrade(List<T> loaded) => null;
+
   T? byId(String id) {
     for (final item in _items) {
       if (idOf(item) == id) return item;
@@ -47,11 +50,13 @@ abstract class JsonListStore<T> extends ChangeNotifier {
       final file = await fileFor(uid);
       await beforeLoad(file);
       final exists = await file.exists();
-      final loaded = exists
+      final read = exists
           ? (jsonDecode(await file.readAsString()) as List<dynamic>)
               .map((e) => decode(e as Map<String, dynamic>))
               .toList()
           : seed();
+      final upgraded = exists ? upgrade(read) : null;
+      final loaded = upgraded ?? read;
       // Pengguna bisa saja keluar selagi file dibaca
       if (_uid != uid) return;
       _items
@@ -59,7 +64,7 @@ abstract class JsonListStore<T> extends ChangeNotifier {
         ..addAll(loaded);
       _sort();
       notifyListeners();
-      if (!exists) await _save();
+      if (!exists || upgraded != null) await _save();
     } catch (e) {
       debugPrint('Gagal memuat $_fileName: $e');
     }

@@ -12,6 +12,8 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/services/settings_service.dart';
+import 'package:moveup/services/voice_coach.dart';
 
 enum _RecordState { ready, recording, paused }
 
@@ -29,6 +31,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   static const _defaultCenter = LatLng(-6.2088, 106.8456);
   // Titik GPS dengan akurasi lebih buruk dari ini tidak dimasukkan ke rute
   static const _maxAccuracyMeters = 25.0;
+  static const _readError = "Gagal membaca lokasi. Menunggu sinyal GPS…";
 
   final _mapController = MapController();
   // Stopwatch memakai jam monotonic, jadi tetap akurat walau timer UI melambat saat layar mati
@@ -47,6 +50,8 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   bool _mapReady = false;
   bool _followUser = true;
   String? _error;
+  // Dibuat saat mulai merekam, karena jenis olahraga bisa diganti sebelum itu
+  KmAnnouncer? _announcer;
 
   @override
   void initState() {
@@ -58,6 +63,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   void dispose() {
     _positionSub?.cancel();
     _ticker?.cancel();
+    VoiceCoach.instance.stop();
     super.dispose();
   }
 
@@ -78,8 +84,9 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
 
     _positionSub = Geolocator.getPositionStream(locationSettings: _locationSettings()).listen(
       _onPosition,
-      onError: (_) {
-        if (mounted) setState(() => _error = "Gagal membaca lokasi.");
+      onError: (Object e) {
+        debugPrint('Gagal membaca lokasi: $e');
+        if (mounted) setState(() => _error = _readError);
       },
     );
   }
@@ -91,6 +98,9 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
         return AndroidSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 3,
+          // Baca GPS langsung lewat LocationManager: rekaman olahraga memang butuh GPS satelit,
+          // dan tetap jalan di perangkat tanpa Google Play Services
+          forceLocationManager: true,
           intervalDuration: const Duration(seconds: 1),
           foregroundNotificationConfig: const ForegroundNotificationConfig(
             notificationTitle: "MoveUp sedang merekam",
@@ -115,21 +125,41 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   void _onPosition(Position position) {
     final point = LatLng(position.latitude, position.longitude);
     setState(() {
+      // Gangguan GPS sesaat tidak boleh mengunci tombol Mulai selamanya
+      if (_error == _readError) _error = null;
       _current = point;
       _accuracy = position.accuracy;
       if (_state == _RecordState.recording && position.accuracy <= _maxAccuracyMeters) {
         // Jarak hanya dihitung dalam satu segmen, jadi perpindahan saat dijeda tidak ikut terhitung
+        final now = _stopwatch.elapsedMilliseconds / 1000;
         if (_points.isNotEmpty && _points.last.segment == _segment) {
           final last = _points.last;
+          final before = _distanceMeters;
           _distanceMeters += haversineMeters(last.lat, last.lng, point.latitude, point.longitude);
+          _announceKilometers(before, last.t, now);
         }
-        _points.add(TrackPoint(point.latitude, point.longitude, _stopwatch.elapsedMilliseconds / 1000, _segment));
+        _points.add(TrackPoint(point.latitude, point.longitude, now, _segment));
       }
     });
     if (_mapReady && _followUser) _mapController.move(point, _mapController.camera.zoom);
   }
 
+  void _announceKilometers(double fromMeters, double fromSeconds, double toSeconds) {
+    final texts = _announcer?.update(
+          fromMeters: fromMeters,
+          fromSeconds: fromSeconds,
+          toMeters: _distanceMeters,
+          toSeconds: toSeconds,
+        ) ??
+        const [];
+    if (!SettingsService.instance.voiceCoach) return;
+    for (final text in texts) {
+      VoiceCoach.instance.speak(text);
+    }
+  }
+
   void _start() {
+    _announcer = KmAnnouncer(_type);
     _startTime = DateTime.now();
     _stopwatch.start();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
@@ -304,6 +334,24 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
                             icon: Icon(_followUser ? Icons.my_location : Icons.location_searching, color: scheme.onSurface),
                             onPressed: _recenter,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        ListenableBuilder(
+                          listenable: SettingsService.instance,
+                          builder: (context, _) {
+                            final on = SettingsService.instance.voiceCoach;
+                            return CircleAvatar(
+                              backgroundColor: scheme.surface,
+                              child: IconButton(
+                                tooltip: on ? "Matikan suara tiap km" : "Nyalakan suara tiap km",
+                                icon: Icon(on ? Icons.volume_up : Icons.volume_off, color: scheme.onSurface),
+                                onPressed: () {
+                                  SettingsService.instance.setVoiceCoach(!on);
+                                  if (on) VoiceCoach.instance.stop();
+                                },
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 8),
                         const OsmAttribution(),

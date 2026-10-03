@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/models/goal.dart';
 import 'package:moveup/models/reminder.dart';
@@ -53,7 +55,60 @@ class SampleData {
       startTime: start,
       movingSeconds: minutes * 60,
       distanceMeters: km * 1000,
+      points: routeFor(id, type, km * 1000, minutes * 60),
     );
+  }
+
+  static bool isSampleId(String id) => RegExp(r'^act-\d+$').hasMatch(id);
+
+  // Rute contoh untuk aktivitas simulasi; renang di kolam tidak punya rute GPS
+  static List<TrackPoint> routeFor(String id, SportType type, double meters, int seconds) =>
+      type == SportType.swim || !isSampleId(id) ? const [] : _route(int.parse(id.substring(4)), meters, seconds);
+
+  // Titik awal rute contoh di sekitar Bandung
+  static const _starts = [
+    (-6.9003, 107.6186), // Gasibu
+    (-6.8915, 107.6107), // Dago
+    (-6.9218, 107.6071), // Alun-alun
+    (-6.8701, 107.5973), // Setiabudi
+    (-6.9147, 107.6355), // Antapani
+    (-6.8445, 107.6455), // Dago Pakar
+  ];
+
+  // Rute melingkar berbentuk tidak beraturan yang panjangnya disamakan dengan [meters].
+  // Bentuknya ditentukan [seed] supaya data simulasi selalu sama setiap kali dimuat.
+  static List<TrackPoint> _route(int seed, double meters, int seconds) {
+    final (lat0, lng0) = _starts[seed % _starts.length];
+    final random = math.Random(seed);
+    final a = 0.15 + random.nextDouble() * 0.2, b = random.nextDouble() * 0.12;
+    final phase = random.nextDouble() * math.pi * 2, stretch = 0.6 + random.nextDouble() * 0.8;
+    const n = 160;
+
+    // Bentuk dasar dalam meter, lalu diskalakan ke panjang yang diminta
+    final shape = <(double, double)>[];
+    for (var i = 0; i <= n; i++) {
+      final th = i / n * math.pi * 2;
+      final r = 1 + a * math.sin(3 * th + phase) + b * math.sin(7 * th);
+      // Titik awal berada di (0, 0) supaya rute mulai dan berakhir di titik start
+      shape.add((r * math.cos(th) * stretch - (1 + a * math.sin(phase)) * stretch, r * math.sin(th)));
+    }
+    var length = 0.0;
+    for (var i = 1; i < shape.length; i++) {
+      length += math.sqrt(math.pow(shape[i].$1 - shape[i - 1].$1, 2) + math.pow(shape[i].$2 - shape[i - 1].$2, 2));
+    }
+    final scale = meters / length;
+    final mPerLng = 111320 * math.cos(lat0 * math.pi / 180);
+
+    final points = <TrackPoint>[];
+    var walked = 0.0;
+    for (var i = 0; i < shape.length; i++) {
+      if (i > 0) {
+        walked += math.sqrt(math.pow(shape[i].$1 - shape[i - 1].$1, 2) + math.pow(shape[i].$2 - shape[i - 1].$2, 2)) * scale;
+      }
+      final (x, y) = shape[i];
+      points.add(TrackPoint(lat0 + y * scale / 111320, lng0 + x * scale / mPerLng, walked / meters * seconds, 0));
+    }
+    return points;
   }
 
   static List<Goal> goals(DateTime now) {
