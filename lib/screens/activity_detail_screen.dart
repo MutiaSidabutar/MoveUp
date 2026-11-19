@@ -21,7 +21,8 @@ class ActivityDetailScreen extends StatelessWidget {
     final delete = await showConfirmDialog(
       context,
       title: "Hapus aktivitas?",
-      message: "\"${activity.title}\" beserta rutenya akan dihapus permanen dan tidak bisa dikembalikan.",
+      message:
+          "\"${activity.title}\" beserta rutenya akan dihapus permanen dan tidak bisa dikembalikan.",
       confirmLabel: "Hapus",
     );
     if (!delete || !context.mounted) return;
@@ -36,13 +37,16 @@ class ActivityDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Dibaca ulang dari store supaya hasil edit langsung tampil
     return ListenableBuilder(
-      listenable: Listenable.merge([ActivityStore.instance, GoalStore.instance]),
-      builder: (context, _) => _build(context, ActivityStore.instance.byId(activity.id) ?? activity),
+      listenable: Listenable.merge([
+        ActivityStore.instance,
+        GoalStore.instance,
+      ]),
+      builder: (context, _) =>
+          _build(context, ActivityStore.instance.byId(activity.id) ?? activity),
     );
   }
 
   Widget _build(BuildContext context, Activity activity) {
-    final primary = Theme.of(context).primaryColor;
     final (paceLabel, paceValue) = paceOrSpeed(activity);
     final splits = activity.splits;
     final all = ActivityStore.instance.activities;
@@ -63,7 +67,9 @@ class ActivityDetailScreen extends StatelessWidget {
             tooltip: "Edit",
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => AddActivityScreen(activity: activity)),
+              MaterialPageRoute(
+                builder: (_) => AddActivityScreen(activity: activity),
+              ),
             ),
           ),
           IconButton(
@@ -75,34 +81,86 @@ class ActivityDetailScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          if (activity.points.isNotEmpty) SizedBox(height: 300, child: RouteMap(points: activity.points, interactive: true)),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      child: Text(ProfileService.instance.profile?.initials ?? '?', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(ProfileService.instance.profile?.name ?? 'Pengguna', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          "${formatDate(activity.startTime)} pukul ${formatTime(activity.startTime)}",
-                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ],
+                Text(
+                  '${formatDate(activity.startTime)} · ${formatTime(activity.startTime)}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(activity.title, style: AppTheme.display(30)),
+                const SizedBox(height: 6),
+                Text(activity.title, style: AppTheme.display(38)),
+                Text(
+                  ProfileService.instance.profile?.name ?? 'Pengguna',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns =
+                        constraints.maxWidth < 280 ||
+                            MediaQuery.textScalerOf(context).scale(16) > 24
+                        ? 1
+                        : 2;
+                    final width =
+                        (constraints.maxWidth - (columns - 1) * 10) / columns;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final stat in [
+                          (
+                            Icons.route_outlined,
+                            'Jarak',
+                            '${formatKm(activity.distanceMeters)} km',
+                          ),
+                          (
+                            Icons.timer_outlined,
+                            'Waktu bergerak',
+                            formatDuration(activity.movingSeconds),
+                          ),
+                          (
+                            Icons.speed_rounded,
+                            '$paceLabel rata-rata',
+                            paceValue,
+                          ),
+                          (
+                            Icons.local_fire_department_outlined,
+                            'Kalori',
+                            '${activity.calories} kcal',
+                          ),
+                        ])
+                          SizedBox(
+                            width: width,
+                            child: _DetailStat(
+                              icon: stat.$1,
+                              label: stat.$2,
+                              value: stat.$3,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                if (activity.points.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    child: SizedBox(
+                      height: 300,
+                      child: RouteMap(
+                        points: activity.points,
+                        interactive: true,
+                      ),
+                    ),
+                  ),
+                ],
                 if (activity.description.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(activity.description),
@@ -111,31 +169,30 @@ class ActivityDetailScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    child: ActivityMedia(activity: activity, height: 240, showMap: false),
+                    child: ActivityMedia(
+                      activity: activity,
+                      height: 240,
+                      showMap: false,
+                    ),
                   ),
                 ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    _DetailStat(label: "Jarak", value: "${formatKm(activity.distanceMeters)} km"),
-                    _DetailStat(label: "$paceLabel rata-rata", value: paceValue),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _DetailStat(label: "Waktu bergerak", value: formatDuration(activity.movingSeconds)),
-                    _DetailStat(label: "Kalori", value: "${activity.calories} kcal"),
-                  ],
-                ),
                 if (splits.isNotEmpty) ...[
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider()),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Divider(),
+                  ),
                   Text("Split", style: AppTheme.display(22)),
                   const SizedBox(height: 12),
-                  _SplitsTable(splits: splits, showsSpeed: activity.type.showsSpeed),
+                  _SplitsTable(
+                    splits: splits,
+                    showsSpeed: activity.type.showsSpeed,
+                  ),
                 ],
                 if (goals.isNotEmpty) ...[
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider()),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Divider(),
+                  ),
                   Text("Target Terkait", style: AppTheme.display(22)),
                   const SizedBox(height: 8),
                   for (final goal in goals)
@@ -143,11 +200,15 @@ class ActivityDetailScreen extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(goal.icon),
                       title: Text(goal.title),
-                      subtitle: Text("${goal.period.label} · ${goal.targetLabel}"),
+                      subtitle: Text(
+                        "${goal.period.label} · ${goal.targetLabel}",
+                      ),
                       trailing: const Icon(Icons.chevron_right, size: 20),
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: goal.id)),
+                        MaterialPageRoute(
+                          builder: (_) => GoalDetailScreen(goalId: goal.id),
+                        ),
                       ),
                     ),
                 ],
@@ -161,20 +222,45 @@ class ActivityDetailScreen extends StatelessWidget {
 }
 
 class _DetailStat extends StatelessWidget {
-  const _DetailStat({required this.label, required this.value});
-
+  const _DetailStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 4),
-          Text(value, style: AppTheme.display(28)),
+          Row(
+            children: [
+              Icon(icon, color: scheme.primary, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(value, style: AppTheme.display(27)),
         ],
       ),
     );
@@ -191,15 +277,23 @@ class _SplitsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).primaryColor;
-    final maxSpeed = splits.map((s) => s.speedKmh).reduce((a, b) => a > b ? a : b);
-    final headerStyle = TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12);
+    final maxSpeed = splits
+        .map((s) => s.speedKmh)
+        .reduce((a, b) => a > b ? a : b);
+    final headerStyle = TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontSize: 12,
+    );
 
     return Column(
       children: [
         Row(
           children: [
             SizedBox(width: 48, child: Text("Km", style: headerStyle)),
-            SizedBox(width: 64, child: Text(showsSpeed ? "km/j" : "Pace", style: headerStyle)),
+            SizedBox(
+              width: 64,
+              child: Text(showsSpeed ? "km/j" : "Pace", style: headerStyle),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -210,12 +304,18 @@ class _SplitsTable extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 48,
-                  child: Text(split.distanceMeters >= 1000 ? "${split.index}" : formatKm(split.distanceMeters)),
+                  child: Text(
+                    split.distanceMeters >= 1000
+                        ? "${split.index}"
+                        : formatKm(split.distanceMeters),
+                  ),
                 ),
                 SizedBox(
                   width: 64,
                   child: Text(
-                    showsSpeed ? formatSpeed(split.speedKmh) : formatPace(split.paceSecPerKm),
+                    showsSpeed
+                        ? formatSpeed(split.speedKmh)
+                        : formatPace(split.paceSecPerKm),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -223,10 +323,15 @@ class _SplitsTable extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: FractionallySizedBox(
-                      widthFactor: maxSpeed == 0 ? 0 : (split.speedKmh / maxSpeed).clamp(0.05, 1.0),
+                      widthFactor: maxSpeed == 0
+                          ? 0
+                          : (split.speedKmh / maxSpeed).clamp(0.05, 1.0),
                       child: Container(
                         height: 14,
-                        decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(3)),
+                        decoration: BoxDecoration(
+                          color: primary,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
                     ),
                   ),

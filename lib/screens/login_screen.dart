@@ -99,64 +99,78 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = AppTheme.darkTheme;
+    final scheme = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(24.0),
-            children: [
-              Text("SELAMAT DATANG", style: AppTheme.display(38, letterSpacing: 1.5)),
-              const SizedBox(height: 8),
-              Text("Masuk untuk melanjutkan latihanmu", style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                textInputAction: TextInputAction.next,
-                validator: Validators.email,
-                decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.mail_outline)),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const SportsPhotoBackground('assets/sports/login-cycling-blue.png', opacity: 0.15),
+        Theme(
+          data: theme,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              scrolledUnderElevation: 0,
+            ),
+            body: SafeArea(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(24.0),
+                  children: [
+                    Text("SELAMAT DATANG", style: AppTheme.display(38, letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    Text("Masuk untuk melanjutkan latihanmu", style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
+                    const SizedBox(height: 40),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      textInputAction: TextInputAction.next,
+                      validator: Validators.email,
+                      decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.mail_outline)),
+                    ),
+                    const SizedBox(height: 16),
+                    PasswordField(
+                      controller: _passwordCtrl,
+                      label: "Password",
+                      validator: Validators.requiredPassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(onPressed: _loading ? null : _forgotPassword, child: const Text("Lupa password?")),
+                    ),
+                    if (_error != null) _ErrorBanner(message: _error!),
+                    const SizedBox(height: 16),
+                    PrimaryButton(text: "Masuk", icon: Icons.login, loading: _loading, onPressed: _submit),
+                    const SizedBox(height: 24),
+                    const _OrDivider(),
+                    const SizedBox(height: 24),
+                    GoogleSignInButton(enabled: !_loading),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Belum punya akun?", style: TextStyle(color: scheme.onSurfaceVariant)),
+                        TextButton(
+                          onPressed: _loading
+                              ? null
+                              : () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SignUpScreen())),
+                          child: const Text("Daftar", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              PasswordField(
-                controller: _passwordCtrl,
-                label: "Password",
-                validator: Validators.requiredPassword,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(onPressed: _loading ? null : _forgotPassword, child: const Text("Lupa password?")),
-              ),
-              if (_error != null) _ErrorBanner(message: _error!),
-              const SizedBox(height: 16),
-              PrimaryButton(text: "Masuk", icon: Icons.login, loading: _loading, onPressed: _submit),
-              const SizedBox(height: 24),
-              const _OrDivider(),
-              const SizedBox(height: 24),
-              GoogleSignInButton(enabled: !_loading),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Belum punya akun?", style: TextStyle(color: scheme.onSurfaceVariant)),
-                  TextButton(
-                    onPressed: _loading
-                        ? null
-                        : () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SignUpScreen())),
-                    child: const Text("Daftar", style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -4,6 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moveup/theme.dart';
 
+class SportsPhotoBackground extends StatelessWidget {
+  const SportsPhotoBackground(this.asset, {super.key, this.opacity = 0.7});
+
+  final String asset;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xff09132b),
+      image: DecorationImage(image: AssetImage(asset), fit: BoxFit.cover, opacity: opacity),
+    ),
+    child: const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xd3122044), Color(0x10152655), Color(0x5509132b)],
+          stops: [0, .5, 1],
+        ),
+      ),
+    ),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tombol
 // ---------------------------------------------------------------------------

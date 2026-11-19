@@ -45,7 +45,7 @@ class AppSpacing {
 // Satu bentuk sudut untuk tombol, field, dan kartu
 class AppRadius {
   static const control = 14.0;
-  static const card = 20.0;
+  static const card = 24.0;
   static const sheet = 28.0;
 }
 
@@ -64,7 +64,7 @@ class AppTheme {
   static const accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [accent, accentDeep, Color(0xFF4F46E5)],
+    colors: [Color(0xFF4FA8FF), Color(0xFF3567ED), Color(0xFF4927A8)],
   );
 
   // Bayangan lembut untuk elemen yang mengambang
@@ -74,13 +74,13 @@ class AppTheme {
 
   // Terang: kabut pagi
   static const _fog = _Palette(
-    background: Color(0xFFEEF0F4),
-    backgroundTop: Color(0xFFE8F0FE),
+    background: Color(0xFFF5F7FB),
+    backgroundTop: Color(0xFFE8F1FF),
     surface: Color(0xFFFFFFFF),
-    border: Color(0xFFDDE2EA),
+    border: Color(0xFFE5EAF2),
     text: Color(0xFF0F172A),
     muted: Color(0xFF64748B),
-    input: Color(0xFFE9EDF3),
+    input: Color(0xFFF0F3F8),
     glow: Color(0x263B82F6),
     coolGlow: Color(0x1422D3EE),
   );

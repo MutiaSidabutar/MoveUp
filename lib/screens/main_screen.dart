@@ -42,10 +42,25 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_currentIndex != 0)
+            ColoredBox(
+              color: theme.canvasColor,
+              child: Image.asset(
+                'assets/sports/training.jpg',
+                fit: BoxFit.cover,
+                opacity: const AlwaysStoppedAnimation(0.16),
+                excludeFromSemantics: true,
+              ),
+            ),
+          IndexedStack(index: _currentIndex, children: _screens),
+        ],
+      ),
       floatingActionButton: Container(
-        width: 64,
-        height: 64,
+        width: 66,
+        height: 66,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: AppTheme.accentGradient,
@@ -56,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
           onPressed: _openRecorder,
           child: const Tooltip(
             message: "Rekam aktivitas",
-            child: Icon(Icons.fiber_manual_record, size: 30, color: Colors.white),
+            child: Icon(Icons.play_arrow_rounded, size: 36, color: Colors.white),
           ),
         ),
       ),
@@ -141,7 +156,8 @@ class _NavItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
                 decoration: BoxDecoration(
                   color: selected ? scheme.primary.withValues(alpha: 0.12) : Colors.transparent,
