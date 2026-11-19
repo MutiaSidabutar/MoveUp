@@ -18,7 +18,6 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Akun demo (AuthService.skipLogin) tidak login ke Firebase, jadi tidak bisa memakai chat
     final user = AuthService.currentUser;
     if (user == null) {
       return Scaffold(
