@@ -29,11 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    if (AuthService.skipLogin) {
-      AuthService.enterDemo();
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      return;
-    }
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
