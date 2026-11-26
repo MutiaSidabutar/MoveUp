@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/models/goal.dart';
+import 'package:moveup/widgets/like_button.dart';
 
 // Kartu ringkas satu target beserta progres periode berjalan
 class GoalProgressCard extends StatelessWidget {
@@ -31,7 +32,10 @@ class GoalProgressCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       goal.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -58,6 +62,7 @@ class GoalProgressCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
+                  LikeButton(type: 'goal', id: goal.id, compact: true),
                   Text(
                     "${(progress.fraction * 100).round()}%",
                     style: TextStyle(color: scheme.onSurfaceVariant),
@@ -80,10 +85,17 @@ class GoalDoneBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Text(
         "Tercapai",
-        style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+        style: TextStyle(
+          color: scheme.onPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
