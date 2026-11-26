@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:moveup/models/activity.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/services/goal_store.dart';
@@ -20,33 +18,6 @@ class AuthFailure implements Exception {
 }
 
 class AuthService {
-  // Sementara: tombol Masuk langsung membuka aplikasi dengan akun demo lokal tanpa Firebase.
-  // Ubah ke false untuk memakai login Firebase lagi.
-  static const skipLogin = true;
-
-  static const demoUid = 'demo';
-
-  // true selama akun demo sedang dipakai; AuthGate mendengarkan nilai ini
-  static final demoSignedIn = ValueNotifier<bool>(false);
-
-  static void enterDemo() {
-    ProfileService.instance.setLocal(UserProfile(
-      uid: demoUid,
-      name: 'Pengguna Demo',
-      email: 'demo@moveup.app',
-      gender: Gender.male,
-      birthDate: DateTime(2000, 1, 1),
-      weightKg: ProfileService.defaultWeightKg,
-      heightCm: 170,
-      level: FitnessLevel.beginner,
-      favoriteSports: const [SportType.run],
-    ));
-    ActivityStore.instance.loadFor(demoUid);
-    GoalStore.instance.loadFor(demoUid);
-    ReminderStore.instance.loadFor(demoUid);
-    demoSignedIn.value = true;
-  }
-
   static FirebaseAuth get _auth => FirebaseAuth.instance;
 
   static User? get currentUser => _auth.currentUser;
@@ -130,7 +101,6 @@ class AuthService {
   }
 
   static Future<void> signOut() async {
-    demoSignedIn.value = false;
     // Keluar juga dari Google supaya lain kali pemilih akun muncul lagi
     if (_googleReady) await GoogleSignIn.instance.signOut();
     await _auth.signOut();

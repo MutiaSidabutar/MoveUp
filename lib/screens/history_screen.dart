@@ -99,7 +99,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   rows.add(a);
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 100),
                   itemCount: rows.length,
                   itemBuilder: (context, i) => switch (rows[i]) {
                     final String month => Padding(

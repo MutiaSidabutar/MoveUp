@@ -48,7 +48,6 @@ class ActivityDetailScreen extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, Activity activity) {
-    final primary = Theme.of(context).primaryColor;
     final (paceLabel, paceValue) = paceOrSpeed(activity);
     final splits = activity.splits;
     final all = ActivityStore.instance.activities;
@@ -121,11 +120,22 @@ class ActivityDetailScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-                Text(activity.title, style: AppTheme.display(30)),
+                if (activity.points.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    child: SizedBox(
+                      height: 300,
+                      child: RouteMap(
+                        points: activity.points,
+                        interactive: true,
+                      ),
+                    ),
+                  ),
+                ],
                 if (activity.description.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(activity.description),
@@ -218,14 +228,25 @@ class ActivityDetailScreen extends StatelessWidget {
 }
 
 class _DetailStat extends StatelessWidget {
-  const _DetailStat({required this.label, required this.value});
-
+  const _DetailStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

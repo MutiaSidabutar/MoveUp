@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
-import 'package:moveup/services/auth_service.dart';
-import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/widgets.dart';
 
 // Uji komponen bersama dan perilaku form (kualitas UI dan interaksi)
@@ -186,14 +184,5 @@ void main() {
       await tester.pump();
       expect(find.text('Menit maksimal 59'), findsOneWidget);
     });
-  });
-
-  test('mode demo masuk tanpa Firebase dan keluar lagi', () async {
-    expect(AuthService.demoSignedIn.value, isFalse);
-    AuthService.enterDemo();
-    expect(AuthService.demoSignedIn.value, isTrue);
-    expect(ProfileService.instance.profile?.uid, AuthService.demoUid);
-    AuthService.demoSignedIn.value = false;
-    ProfileService.instance.clear();
   });
 }
